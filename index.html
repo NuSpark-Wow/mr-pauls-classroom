@@ -109,6 +109,19 @@ button{font-family:inherit;cursor:pointer}
 .bigbtn:active{transform:translateY(3px)}
 .deeper .sub{font-size:15px;font-weight:800;color:var(--soft);margin-bottom:8px}
 .deeper .chip{font-size:16px;padding:10px 16px;background:#f3eefe;border-color:#e2d6fb;color:#5b3ab0}
+.bigbtn.on{outline:4px solid var(--yellow);outline-offset:2px}
+.follow{background:#f6f9ff;border:2px solid #cfe0ff;border-radius:16px;padding:14px;margin:0 0 10px}
+.follow .fl{font-weight:900;font-size:18px;margin-bottom:10px;color:var(--ink)}
+.follow .frow{display:flex;gap:10px;align-items:center}
+.follow .fmic{flex:none;width:54px;height:54px;border-radius:50%;border:0;background:var(--red);color:#fff;font-size:24px;box-shadow:0 3px 0 #b83c35}
+.follow .fmic.listening{background:var(--green);box-shadow:0 3px 0 #1f7a38}
+.follow input{flex:1;min-width:0;height:54px;border:3px solid var(--line);border-radius:14px;padding:0 14px;font-size:18px;font-family:inherit;font-weight:700;color:var(--ink);background:#fff}
+.follow input:focus{outline:none;border-color:var(--blue)}
+.follow .fgo{flex:none;border:0;background:var(--blue);color:#fff;font-weight:900;font-size:18px;padding:0 20px;height:54px;border-radius:14px;box-shadow:0 3px 0 #154aa8}
+.follow .fgo:disabled{opacity:.75}
+.fstatus{font-weight:800;font-size:17px;color:var(--blue);min-height:24px;margin:0 0 10px}
+.fstatus:empty{display:none}
+@media (max-width:560px){.follow .frow{flex-wrap:wrap}.follow input{flex-basis:calc(100% - 64px)}.follow .fgo{flex:1 1 100%}}
 
 .notice{margin-top:18px;font-size:13.5px;color:var(--soft);line-height:1.5;text-align:center;font-weight:700}
 .hide{display:none !important}
@@ -256,6 +269,11 @@ body.present .caption{font-size:clamp(22px,2vw,30px)}
       <button class="bigbtn ask-about" id="askAbout"></button>
       <button class="bigbtn more" id="tellMore"></button>
     </div>
+    <div class="follow hide" id="followBox">
+      <div class="fl" id="fLabel"></div>
+      <div class="frow"><button class="fmic" id="fMic" aria-label="Talk">🎤</button><input id="fq" autocomplete="off"><button class="fgo" id="fGo"></button></div>
+    </div>
+    <div class="fstatus" id="fStatus" aria-live="polite"></div>
     <div class="sub" id="orTry"></div>
     <div class="row" id="deeper"></div>
   </div>
@@ -286,7 +304,9 @@ const T = {
     gotIt: "🎉 You got it! ", goodTry: "Good try! Pick another one.", answerKey: "Answer: ",
     hDeep: "🔍 Keep learning!", askAbout: "💬 Ask about this", tellMore: "➕ Tell me more", orTry: "Or try one of these:",
     askAboutHint: t => "What do you want to know about " + t + "? Type it, or tap the red mic and say it!", moreQ: t => "Tell me more about " + t,
-    moreHint: t => "What part of " + t + " do you want more about? Type it or tap the mic. Or just tap Ask for more about all of it!",
+    aboutLabel: t => "What do you want to know about " + t + "?", aboutPh: "Type it, or tap the mic and say it…",
+    moreLabel: t => "What part of " + t + " do you want more about?", morePh: "Type a part, or leave it empty for more about everything",
+    moreGo: "Tell me more", working: "⏳ Working on it… Mr. Paul is thinking!", needQ: "Type or say your question first!", fListening: "👂 I'm listening… ask your question!",
     oops: "Oops! My marker ran out.", oopsText: "Something went wrong. Please try your question again.", code: "Code: ",
     hello: "Hi! I'll read your answers.", helpCap: "You matter. 💛", otherCap: "Ask me another question!",
     notice: "🖼️ Every picture here is public domain or free to share, from sources like Wikimedia Commons, NASA, and the Smithsonian. Mr. Paul never saves your voice. Your words are turned into text right away, and nothing is recorded. Please don't share your name, school, or address.",
@@ -313,7 +333,9 @@ const T = {
     gotIt: "🎉 ¡Muy bien! ", goodTry: "¡Buen intento! Elige otra.", answerKey: "Respuesta: ",
     hDeep: "🔍 ¡Sigue aprendiendo!", askAbout: "💬 Pregunta sobre esto", tellMore: "➕ Cuéntame más", orTry: "O prueba una de estas:",
     askAboutHint: t => "¿Qué quieres saber sobre " + t + "? ¡Escríbelo, o toca el micrófono rojo y dilo!", moreQ: t => "Cuéntame más sobre " + t,
-    moreHint: t => "¿Sobre qué parte de " + t + " quieres saber más? Escríbelo o toca el micrófono. ¡O toca Preguntar para saber más de todo!",
+    aboutLabel: t => "¿Qué quieres saber sobre " + t + "?", aboutPh: "Escríbelo, o toca el micrófono y dilo…",
+    moreLabel: t => "¿Sobre qué parte de " + t + " quieres saber más?", morePh: "Escribe una parte, o déjalo vacío para saber más de todo",
+    moreGo: "Cuéntame más", working: "⏳ Trabajando… ¡Mr. Paul está pensando!", needQ: "¡Primero escribe o di tu pregunta!", fListening: "👂 Te escucho… ¡haz tu pregunta!",
     oops: "¡Ay! Se acabó mi marcador.", oopsText: "Algo salió mal. Por favor, haz tu pregunta otra vez.", code: "Código: ",
     hello: "¡Hola! Yo leeré tus respuestas.", helpCap: "Tú importas. 💛", otherCap: "¡Hazme otra pregunta!",
     notice: "🖼️ Todas las fotos son de dominio público o libres para compartir, de fuentes como Wikimedia Commons, la NASA y el Smithsonian. Mr. Paul nunca guarda tu voz. Tus palabras se convierten en texto al instante y nada se graba. Por favor, no compartas tu nombre, escuela ni dirección.",
@@ -399,9 +421,10 @@ function unlock(){
 
 /* ---------- microphone (browser speech-to-text, nothing recorded) ---------- */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let rec = null, listening = false;
+let rec = null, listening = false, micTarget = "q";
 function startListening(){
   if (!rec) { $("q").focus(); return; }
+  micTarget = "q";
   try { stopVoice(); rec.start(); listening = true; $("mic").classList.add("listening"); $("mic").textContent = "👂"; $("hint").textContent = t().listening; } catch(e) {}
 }
 if (!SR) {
@@ -409,13 +432,18 @@ if (!SR) {
   $("mic").onclick = () => { unlock(); $("q").focus(); $("hint").textContent = t().noMic; };
 } else {
   rec = new SR(); rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
-  rec.onresult = e => { let s = ""; for (const r of e.results) s += r[0].transcript; $("q").value = s; };
+  rec.onresult = e => { let s = ""; for (const r of e.results) s += r[0].transcript; $(micTarget).value = s; };
   rec.onend = () => {
-    listening = false; $("mic").classList.remove("listening"); $("mic").textContent = "🎤";
+    listening = false;
+    if (micTarget === "fq") {
+      micTarget = "q"; $("fMic").classList.remove("listening"); $("fMic").textContent = "🎤";
+      $("fStatus").textContent = $("fq").value.trim() ? t().heard : (followMode === "more" ? "" : t().nothing);
+      return;
+    } $("mic").classList.remove("listening"); $("mic").textContent = "🎤";
     if ($("q").value.trim()) { $("hint").textContent = t().heard; $("go").classList.add("ready"); }
     else $("hint").textContent = t().nothing;
   };
-  rec.onerror = e => { if (e.error === "not-allowed" || e.error === "service-not-allowed") $("hint").textContent = t().micBlocked; };
+  rec.onerror = e => { if (e.error === "not-allowed" || e.error === "service-not-allowed") $(micTarget === "fq" ? "fStatus" : "hint").textContent = t().micBlocked; };
   $("mic").onclick = () => { unlock(); if (listening) { rec.stop(); return; } $("q").value = ""; $("go").classList.remove("ready"); startListening(); };
 }
 // If "Tell me more" is waiting, Ask uses what they typed or said (or goes deeper on everything when the box is empty)
@@ -431,6 +459,45 @@ function goAsk(){
 }
 $("go").onclick = goAsk;
 $("q").addEventListener("keydown", e => { if (e.key === "Enter") goAsk(); });
+
+/* ---------- follow-up box (Ask about this / Tell me more) right under the buttons ---------- */
+let followMode = "", followTitle = "", followPrev = "";
+function openFollow(mode, title, prev){
+  const S = t(), clean = String(title || "").replace(/[?!.¿¡]+$/, "");
+  followMode = mode; followTitle = title; followPrev = prev;
+  $("fLabel").textContent = mode === "about" ? S.aboutLabel(clean) : S.moreLabel(clean);
+  $("fq").placeholder = mode === "about" ? S.aboutPh : S.morePh;
+  $("fGo").textContent = mode === "about" ? S.ask : S.moreGo; $("fGo").disabled = false;
+  $("fq").value = ""; $("fStatus").textContent = "";
+  $("askAbout").classList.toggle("on", mode === "about"); $("tellMore").classList.toggle("on", mode === "more");
+  $("followBox").classList.remove("hide");
+  $("fq").focus({ preventScroll: true });
+  try { $("followBox").scrollIntoView({ block: "nearest", behavior: "smooth" }); } catch(e) {}
+}
+function fListen(){
+  unlock();
+  if (!rec) { $("fq").focus(); $("fStatus").textContent = t().noMic; return; }
+  if (listening) { rec.stop(); return; }
+  try { stopVoice(); micTarget = "fq"; $("fq").value = ""; rec.start(); listening = true; $("fMic").classList.add("listening"); $("fMic").textContent = "👂"; $("fStatus").textContent = t().fListening; } catch(e) {}
+}
+function sendFollow(){
+  unlock(); if (busy) return;
+  const S = t(), text = $("fq").value.trim();
+  if (followMode === "about" && !text) { $("fStatus").textContent = S.needQ; $("fq").focus(); return; }
+  if (listening) { try { rec.stop(); } catch(e) {} }
+  $("fGo").disabled = true; $("fGo").textContent = "⏳"; $("fStatus").textContent = S.working;
+  if (followMode === "about") ask(text, followTitle, { scroll: true });
+  else ask(text || S.moreQ(followTitle), followTitle, { more: true, prev: followPrev, scroll: true });
+}
+$("fGo").onclick = sendFollow;
+$("fq").addEventListener("keydown", e => { if (e.key === "Enter") sendFollow(); });
+$("fMic").onclick = fListen;
+// Brings the board into view. Inside the website frame, the page around it does the scrolling.
+function toBoard(){
+  const room = document.querySelector(".room");
+  if (window.parent !== window) { try { window.parent.postMessage({ type: "pp-scroll-top", y: room ? room.getBoundingClientRect().top + window.pageYOffset : 0 }, "*"); } catch(e) {} }
+  else { try { room.scrollIntoView({ behavior: "smooth", block: "start" }); } catch(e) {} }
+}
 
 /* ---------- asking: words and drawing are fetched at the same time ---------- */
 const norm = s => s.toLowerCase().replace(/[?!.¿¡,]+/g, " ").replace(/\s+/g, " ").trim();
@@ -545,6 +612,7 @@ async function ask(text, context, opts){
   try {
     if (!data) throw new Error(reason);
     lesson = data; render();
+    if (opts.scroll) toBoard();
     $("hint").textContent = t().another;
     track("lesson", { topic: String(data.title || "").slice(0, 80), level, lang, type: data.type });
   } catch(e) {
@@ -559,6 +627,7 @@ async function ask(text, context, opts){
     buildBoard([{ caption: t().tapAgain, svg: simpleCard("redirect") }]); revealNext();
     $("hint").textContent = t().tapAgain;
     busy = false; $("go").disabled = false;
+    if (opts.scroll) toBoard();
     return;
   }
   busy = false; $("go").disabled = false;
@@ -617,12 +686,13 @@ function render(){
     if (L.image_query) loadImage(L.image_query);
     if (L.quiz && L.quiz.options && L.quiz.options.length) buildQuiz(L.quiz);
     const row = $("deeper"); row.innerHTML = "";
-    (L.deeper || []).slice(0, 3).forEach(q => { const b = document.createElement("button"); b.className = "chip"; b.textContent = q; b.onclick = () => { unlock(); ask(q, L.title); window.scrollTo({ top: 0, behavior: "smooth" }); }; row.appendChild(b); });
+    (L.deeper || []).slice(0, 3).forEach(q => { const b = document.createElement("button"); b.className = "chip"; b.textContent = q; b.onclick = () => { if (busy) return; unlock(); b.textContent = "⏳ " + q; $("fStatus").textContent = S.working; ask(q, L.title, { scroll: true }); }; row.appendChild(b); });
     $("orTry").classList.toggle("hide", !row.children.length);
     const prevSpeech = speech;
-    const readyBox = hintText => { $("q").value = ""; $("go").classList.add("ready"); $("hint").textContent = hintText; $("q").focus({ preventScroll: true }); window.scrollTo({ top: 0, behavior: "smooth" }); };
-    $("tellMore").onclick = () => { unlock(); followUp = ""; pendingMore = { title: L.title, prev: prevSpeech }; readyBox(S.moreHint(L.title)); };
-    $("askAbout").onclick = () => { unlock(); pendingMore = null; followUp = L.title; readyBox(S.askAboutHint(L.title)); };
+    $("followBox").classList.add("hide"); $("fStatus").textContent = "";
+    $("askAbout").classList.remove("on"); $("tellMore").classList.remove("on");
+    $("tellMore").onclick = () => { unlock(); openFollow("more", L.title, prevSpeech); };
+    $("askAbout").onclick = () => { unlock(); openFollow("about", L.title, prevSpeech); };
     $("deepCard").classList.remove("hide");
   }
   if (!isLesson) { buildBoard([{ caption: L.type === "help" ? S.helpCap : S.otherCap, svg: simpleCard(L.type) }]); revealNext(); speak(); }
