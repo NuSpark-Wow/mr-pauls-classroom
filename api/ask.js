@@ -1,4 +1,6 @@
-// Mr. Paul's Classroom — lesson builder (v2: structured output + auto-retry)
+// Mr. Paul's Classroom — lesson + smart-board builder (v3)
+// v3: answer and drawing are made at the same time (faster), repeat questions are saved
+// on Vercel's network (instant + free), and Spanish is supported.
 // Env: ANTHROPIC_API_KEY (required), CLAUDE_MODEL, CLAUDE_CHECK_MODEL (optional)
 
 const MODEL = process.env.CLAUDE_MODEL || "claude-sonnet-5-5";
@@ -6,19 +8,21 @@ const CHECK_MODEL = process.env.CLAUDE_CHECK_MODEL || "claude-haiku-5-5";
 const HOURLY_LIMIT = 20;
 const hits = new Map();
 
-// ---------- Layer 1: word screen ----------
-const HELP_WORDS = /\b(kill (myself|me)|suicide|hurt (myself|me)|cut myself|want to die|someone (hit|hurts|touched) me|being abused|run ?away from home)\b/i;
-const BLOCK_WORDS = /\b(sex|sexy|porn|naked|nude|boobs?|penis|vagina|f+u+c+k|sh[i1]t|b[i1]tch|a+ss+hole|d[i1]ck|pussy|cocaine|heroin|meth|weed|vape|how to make (a )?bomb|drunk)\b/i;
+// ---------- Layer 1: word screen (English + Spanish) ----------
+const HELP_WORDS = /\b(kill (myself|me)|suicide|hurt (myself|me)|cut myself|want to die|someone (hit|hurts|touched) me|being abused|run ?away from home)\b|(matarme|suicid|lastimarme|hacerme da|quiero morir|me pegan|abusan de m)/i;
+const BLOCK_WORDS = /\b(sex|sexy|porn|naked|nude|boobs?|penis|vagina|f+u+c+k|sh[i1]t|b[i1]tch|a+ss+hole|d[i1]ck|pussy|cocaine|heroin|meth|weed|vape|how to make (a )?bomb|drunk|sexo|porno|desnud[oa]s?|drogas?|mierda|puta|marihuana|borracho)\b/i;
 
 const GROWNUP = {
-  type: "grownup",
-  title: "Let's ask a grown-up",
-  answer: ["That's a great question to ask a grown-up you trust, like a parent or a teacher.", "Want to try a different question? I love questions about animals, space, how things work, and so much more!"]
+  en: { type: "grownup", title: "Let's ask a grown-up", answer: ["That's a great question to ask a grown-up you trust, like a parent or a teacher.", "Want to try a different question? I love questions about animals, space, how things work, and so much more!"] },
+  es: { type: "grownup", title: "Pregúntale a un adulto", answer: ["Esa es una gran pregunta para un adulto de confianza, como tu mamá, tu papá o tu maestra.", "¿Quieres intentar otra pregunta? ¡Me encantan las preguntas sobre animales, el espacio, cómo funcionan las cosas y mucho más!"] }
 };
 const HELP = {
-  type: "help",
-  title: "You are important",
-  answer: ["Thank you for telling me. Please tell a grown-up you trust right away, like a parent, a teacher, or the school counselor.", "If you are in danger right now, call 911. You matter, and grown-ups want to help you."]
+  en: { type: "help", title: "You are important", answer: ["Thank you for telling me. Please tell a grown-up you trust right away, like a parent, a teacher, or the school counselor.", "If you are in danger right now, call 911. You matter, and grown-ups want to help you."] },
+  es: { type: "help", title: "Eres importante", answer: ["Gracias por contármelo. Por favor, díselo ahora mismo a un adulto de confianza, como tus papás, tu maestra o el consejero de la escuela.", "Si estás en peligro ahora mismo, llama al 911. Tú importas, y los adultos quieren ayudarte."] }
+};
+const BREAK = {
+  en: { type: "redirect", title: "Brain break!", answer: ["Wow, you asked so many great questions! Time for a little brain break. Come back soon and ask me more."] },
+  es: { type: "redirect", title: "¡Descanso!", answer: ["¡Guau, hiciste muchas preguntas geniales! Es hora de un pequeño descanso. Vuelve pronto y pregúntame más."] }
 };
 
 const LEVELS = {
@@ -27,18 +31,20 @@ const LEVELS = {
 - One idea at a time. Compare things to stuff kids know: toys, kitchens, playgrounds, pets, bath time.
 - "answer": 2-3 short paragraphs, 50-80 words total.
 - "vocab": empty array.
-- Board: 2-3 steps, big simple pictures, 1-2 word labels. The drawing should explain it even without reading.
-- Quiz: very easy, options of 1-4 words each.`,
+- Quiz: very easy, options of 1-4 words each.
+- Board: 2-3 steps, big simple pictures, 1-2 word labels. The drawing should explain it even without reading.`,
   big: `GRADES 3-6 ("Big Learners", ages 8-12):
 - Sentences up to about 18 words. Explain HOW and WHY, cause and effect.
 - Introduce 1-2 real vocabulary words and explain them simply.
 - "answer": 3 short paragraphs, 110-150 words total.
 - "vocab": 1-2 items.
-- Board: 3-4 steps. Can include simple formulas written out step by step (e.g., "Area = length × width" then "5 × 3 = 15").
-- Quiz: needs a little thinking.`
+- Quiz: needs a little thinking.
+- Board: 3-4 steps. Can include simple formulas written out step by step (e.g., "Area = length × width" then "5 × 3 = 15").`
 };
 
-const SYSTEM = `You are Mr. Paul, a warm, patient grade-school teacher who explains things on a smart board. Kids ages 5-12 ask you questions by voice or typing. You are an AI helper made by a real teacher, Mr. Paul; if a child asks, say honestly that you are an AI helper.
+const SPANISH = `IMPORTANT: Write EVERYTHING the child will see or hear (title, answer, vocab, quiz, wow, try_it, deeper, captions, board labels) in simple, friendly Latin American Spanish. Keep image_query in ENGLISH.`;
+
+const SYSTEM_LESSON = `You are Mr. Paul, a warm, patient grade-school teacher. Kids ages 5-12 ask you questions by voice or typing. You are an AI helper made by a real teacher, Mr. Paul; if a child asks, say honestly that you are an AI helper. (A separate artist draws the smart-board pictures; you write the words.)
 
 YOUR JOB: Only educational questions that need explaining (science, nature, animals, space, the human body basics, math, history, geography, how things work, words, art, music, sports science, etc.).
 
@@ -60,7 +66,19 @@ ACCURACY: Use only well-established facts. Simplify without being wrong.
 
 STYLE: Warm, encouraging, like a favorite teacher. Talk directly to the child ("you"). No emojis inside "answer" (it is read aloud). Plain words, no markdown.
 
-THE SMART BOARD: You draw on an 800 wide x 500 tall whiteboard while explaining. Each step adds a drawing and has a short caption (under 12 words). Each step's svg is SVG ELEMENTS ONLY (no <svg> wrapper):
+IMAGE: image_query = 2-4 plain, safe, literal English search words for a real photo showing what the topic looks like (e.g., "honey bee flower"). Never the child's words. "" if a photo would not help or for non-lessons.
+
+LESSON EXTRAS: wow = one surprising true fact. try_it = a tiny totally safe home activity (no fire, stove, heat, sharp tools, electricity, cleaners) starting with "With a grown-up," (or "Con un adulto," in Spanish) or "". quiz = question, exactly 3 options, answer index 0-2, why. deeper = exactly 3 short follow-up questions.
+
+For redirect, grownup, and help: fill only type, title, and answer.
+
+Always respond by calling the give_lesson tool.`;
+
+const SYSTEM_BOARD = `You are the smart-board artist for Mr. Paul, a grade-school teacher. Given a child's question, draw the step-by-step diagram a great teacher would sketch on a whiteboard while explaining the answer.
+
+If the question is NOT an appropriate educational question for young children (inappropriate, scary, personal chit-chat), return steps: [].
+
+THE SMART BOARD: an 800 wide x 500 tall whiteboard. Each step adds a drawing and has a short caption (under 12 words). Each step's svg is SVG ELEMENTS ONLY (no <svg> wrapper):
 - Use single quotes for attribute values.
 - Allowed elements: g, path, line, circle, ellipse, rect, polyline, polygon, text. Nothing else.
 - Lines/outlines: stroke-width 4 to 6, stroke-linecap='round'.
@@ -68,18 +86,13 @@ THE SMART BOARD: You draw on an 800 wide x 500 tall whiteboard while explaining.
 - Text: font-family='Patrick Hand' font-size 24 to 40. Short labels. Arrows drawn with lines/paths.
 - LAYOUT: Before drawing, plan where every object goes. Give each object its own space. Objects must NOT overlap each other, and text must never sit on top of a shape. Leave at least 20px between things. Keep everything inside x 20-780, y 20-480.
 - Max 12 elements per step. Later steps stay on the board, so leave room for them.
+- Simple, clear, kid-friendly: shapes, arrows, labels, step-by-step math.
 
-IMAGE: image_query = 2-4 plain, safe, literal search words for a real photo showing what the topic looks like (e.g., "honey bee flower"). Never the child's words. "" if a photo would not help or for non-lessons.
+Always respond by calling the give_board tool.`;
 
-LESSON EXTRAS: wow = one surprising true fact. try_it = a tiny totally safe home activity (no fire, stove, heat, sharp tools, electricity, cleaners) starting with "With a grown-up," or "". quiz = question, exactly 3 options, answer index 0-2, why. deeper = exactly 3 short follow-up questions.
-
-For redirect, grownup, and help: fill only type, title, and answer.
-
-Always respond by calling the give_lesson tool.`;
-
-const TOOL = {
+const LESSON_TOOL = {
   name: "give_lesson",
-  description: "Deliver Mr. Paul's response to the child.",
+  description: "Deliver Mr. Paul's words to the child.",
   input_schema: {
     type: "object",
     properties: {
@@ -87,7 +100,6 @@ const TOOL = {
       title: { type: "string" },
       answer: { type: "array", items: { type: "string" } },
       vocab: { type: "array", items: { type: "object", properties: { word: { type: "string" }, meaning: { type: "string" } } } },
-      board: { type: "object", properties: { steps: { type: "array", items: { type: "object", properties: { caption: { type: "string" }, svg: { type: "string" } } } } } },
       image_query: { type: "string" },
       wow: { type: "string" },
       try_it: { type: "string" },
@@ -95,6 +107,15 @@ const TOOL = {
       deeper: { type: "array", items: { type: "string" } }
     },
     required: ["type", "title", "answer"]
+  }
+};
+const BOARD_TOOL = {
+  name: "give_board",
+  description: "Deliver the smart-board drawing steps.",
+  input_schema: {
+    type: "object",
+    properties: { steps: { type: "array", items: { type: "object", properties: { caption: { type: "string" }, svg: { type: "string" } } } } },
+    required: ["steps"]
   }
 };
 
@@ -108,19 +129,35 @@ async function anthropic(body) {
   return r.json();
 }
 
-async function getLesson(user) {
+// Calls Claude with a tool; reads the tool answer, or plain JSON text as a backup.
+async function callTool(system, tool, user, maxTokens, check) {
   const data = await anthropic({
-    model: MODEL, max_tokens: 8000, system: SYSTEM,
-    tools: [TOOL], tool_choice: { type: "auto" },
+    model: MODEL, max_tokens: maxTokens, system,
+    tools: [tool], tool_choice: { type: "auto" },
     messages: [{ role: "user", content: user }]
   });
   if (data.stop_reason === "max_tokens") throw new Error("too_long");
   const block = (data.content || []).find(b => b.type === "tool_use");
-  if (block && block.input && Array.isArray(block.input.answer)) return block.input;
+  if (block && block.input && check(block.input)) return block.input;
   const txt = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
   const s = txt.indexOf("{"), e = txt.lastIndexOf("}");
-  if (s >= 0 && e > s) { const j = JSON.parse(txt.slice(s, e + 1)); if (Array.isArray(j.answer)) return j; }
+  if (s >= 0 && e > s) { const j = JSON.parse(txt.slice(s, e + 1)); if (check(j)) return j; }
   throw new Error("bad_shape");
+}
+
+async function withRetry(fn, budgetMs) {
+  const start = Date.now(); let lastErr = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (attempt === 1 && Date.now() - start > budgetMs) break;
+    try { return await fn(); }
+    catch (e) { lastErr = e; console.error("attempt", attempt + 1, "failed:", e.message); }
+  }
+  throw lastErr || new Error("failed");
+}
+
+function errorCode(err) {
+  const m = String(err && err.message || "");
+  return m.startsWith("api_429") ? "R2" : m.startsWith("api_5") ? "B3" : m === "too_long" ? "L4" : m.startsWith("api_4") ? "A5" : "S6";
 }
 
 // The page itself only allows safe drawing shapes; this is an extra first pass.
@@ -134,11 +171,10 @@ function cleanSvg(svg) {
 
 // ---------- Layer 3: answer check ----------
 async function safetyCheck(question, lesson) {
-  const text = [lesson.title, ...(lesson.answer || []), lesson.wow, lesson.try_it, lesson.image_query,
-    ((lesson.board && lesson.board.steps) || []).map(s => s.caption).join(" ")].join("\n");
+  const text = [lesson.title, ...(lesson.answer || []), lesson.wow, lesson.try_it, lesson.image_query].join("\n");
   const data = await anthropic({
     model: CHECK_MODEL, max_tokens: 5,
-    system: "You review content shown to children ages 5-12 on an educational site. Reply with exactly one word: SAFE or UNSAFE. UNSAFE means it contains sexual content, graphic violence or gore, drugs or alcohol, dangerous instructions, scary or disturbing detail, personal information, opinions on religion or politics, or anything a careful teacher would not show this age. Normal science about the body (blood, heart, bones) is SAFE.",
+    system: "You review content shown to children ages 5-12 on an educational site (English or Spanish). Reply with exactly one word: SAFE or UNSAFE. UNSAFE means it contains sexual content, graphic violence or gore, drugs or alcohol, dangerous instructions, scary or disturbing detail, personal information, opinions on religion or politics, or anything a careful teacher would not show this age. Normal science about the body (blood, heart, bones) is SAFE.",
     messages: [{ role: "user", content: `Child's question: ${question}\n\nContent to show:\n${text}` }]
   });
   const verdict = (data.content || []).map(b => b.text || "").join("");
@@ -146,60 +182,70 @@ async function safetyCheck(question, lesson) {
 }
 
 module.exports = async (req, res) => {
-  if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
-  if (!process.env.ANTHROPIC_API_KEY) return res.status(500).json({ error: "oops", reason: "K1" });
+  const isGet = req.method === "GET";
+  if (!isGet && req.method !== "POST") return res.status(405).json({ error: "GET or POST only" });
 
-  const ip = (req.headers["x-forwarded-for"] || "").split(",")[0].trim() || "anon";
-  const now = Date.now();
-  const recent = (hits.get(ip) || []).filter(t => now - t < 3600000);
-  if (recent.length >= HOURLY_LIMIT) {
-    return res.status(200).json({ type: "redirect", title: "Brain break!", answer: ["Wow, you asked so many great questions! Time for a little brain break. Come back soon and ask me more."] });
+  // GET = a fresh question (saved on Vercel's network so repeats are instant).
+  // POST = a follow-up with context (always made fresh).
+  const send = (status, obj, cacheable) => {
+    res.setHeader("Cache-Control", cacheable && isGet && status === 200 ? "public, s-maxage=2592000, stale-while-revalidate=604800" : "no-store");
+    return res.status(status).json(obj);
+  };
+  if (!process.env.ANTHROPIC_API_KEY) return send(500, { error: "oops", reason: "K1" });
+
+  const src = (isGet ? req.query : req.body) || {};
+  const part = src.part === "board" ? "board" : "lesson";
+  const question = String(src.q || src.question || "").trim().slice(0, 200);
+  const level = src.level === "big" ? "big" : "little";
+  const lang = src.lang === "es" ? "es" : "en";
+  const context = isGet ? "" : String(src.context || "").slice(0, 120);
+  const more = !isGet && src.more === true;
+  const prev = isGet ? "" : String(src.prev || "").slice(0, 1200);
+  if (!question) return send(400, { error: "empty" });
+
+  if (HELP_WORDS.test(question)) return send(200, part === "board" ? { steps: [] } : HELP[lang], true);
+  if (BLOCK_WORDS.test(question)) return send(200, part === "board" ? { steps: [] } : GROWNUP[lang], true);
+
+  // per-visitor limit counts lessons only (the drawing rides along)
+  if (part === "lesson") {
+    const ip = (req.headers["x-forwarded-for"] || "").split(",")[0].trim() || "anon";
+    const now = Date.now();
+    const recent = (hits.get(ip) || []).filter(t => now - t < 3600000);
+    if (recent.length >= HOURLY_LIMIT) return send(200, BREAK[lang], false);
+    recent.push(now); hits.set(ip, recent);
   }
-  recent.push(now); hits.set(ip, recent);
 
-  const body = req.body || {};
-  const question = String(body.question || "").trim().slice(0, 200);
-  const level = body.level === "big" ? "big" : "little";
-  const context = String(body.context || "").slice(0, 120);
-  const more = body.more === true;
-  const prev = String(body.prev || "").slice(0, 1200);
-  if (!question) return res.status(400).json({ error: "empty" });
-
-  if (HELP_WORDS.test(question)) return res.json(HELP);
-  if (BLOCK_WORDS.test(question)) return res.json(GROWNUP);
-
-  let user = `${LEVELS[level]}\n\n${context ? `We were just learning about: ${context}\n` : ""}Child's question: ${question}`;
+  let user = `${LEVELS[level]}${lang === "es" ? "\n\n" + SPANISH : ""}\n\n${context ? `We were just learning about: ${context}\n` : ""}Child's question: ${question}`;
   if (more) {
-    user = `${LEVELS[level]}\n\nThe child tapped "Tell me more" about: ${context}\nHere is what you ALREADY taught them:\n${prev}\n\nTeach a NEW lesson that goes one step deeper on this same topic, at the same grade level. Use new facts and a new drawing. Do not repeat what you already said. Make the title fun, like "More About ...".`;
+    user = `${LEVELS[level]}${lang === "es" ? "\n\n" + SPANISH : ""}\n\nThe child tapped "Tell me more" about: ${context}\nHere is what Mr. Paul ALREADY taught them:\n${prev}\n\nGo one step deeper on this same topic, at the same grade level, with NEW facts. Do not repeat what was already said. Make the title fun, like "More About ...".`;
   }
-  const start = Date.now();
-  let lesson = null, lastErr = null;
 
-  // try twice if there's time (Vercel stops at 60 seconds)
-  for (let attempt = 0; attempt < 2 && !lesson; attempt++) {
-    if (attempt === 1 && Date.now() - start > 25000) break;
-    try { lesson = await getLesson(user); }
-    catch (e) { lastErr = e; console.error("lesson attempt", attempt + 1, "failed:", e.message); }
+  if (part === "board") {
+    try {
+      const b = await withRetry(() => callTool(SYSTEM_BOARD, BOARD_TOOL, user, 8000, j => Array.isArray(j.steps)), 25000);
+      const steps = b.steps.slice(0, 6).map(s => ({ caption: String(s.caption || ""), svg: cleanSvg(s.svg) }));
+      return send(200, { steps }, true);
+    } catch (e) {
+      return send(500, { error: "oops", reason: errorCode(e) });
+    }
   }
-  if (!lesson) {
-    const m = String(lastErr && lastErr.message || "");
-    const code = m.startsWith("api_429") ? "R2" : m.startsWith("api_529") || m.startsWith("api_5") ? "B3" : m === "too_long" ? "L4" : m.startsWith("api_4") ? "A5" : "S6";
-    return res.status(500).json({ error: "oops", reason: code });
+
+  let lesson;
+  try {
+    lesson = await withRetry(() => callTool(SYSTEM_LESSON, LESSON_TOOL, user, 4000, j => Array.isArray(j.answer)), 25000);
+  } catch (e) {
+    return send(500, { error: "oops", reason: errorCode(e) });
   }
 
   if (!["lesson", "redirect", "grownup", "help"].includes(lesson.type)) lesson.type = "lesson";
-  if (lesson.type === "grownup") return res.json(GROWNUP);
-  if (lesson.type === "help") return res.json(HELP);
+  if (lesson.type === "grownup") return send(200, GROWNUP[lang], true);
+  if (lesson.type === "help") return send(200, HELP[lang], true);
 
   try {
-    if (!(await safetyCheck(question, lesson))) return res.json(GROWNUP);
+    if (!(await safetyCheck(question, lesson))) return send(200, GROWNUP[lang], true);
   } catch (e) {
     console.error("safety check failed:", e.message);
-    return res.status(500).json({ error: "oops", reason: "C7" });
+    return send(500, { error: "oops", reason: "C7" });
   }
-
-  if (lesson.board && Array.isArray(lesson.board.steps)) {
-    lesson.board.steps = lesson.board.steps.slice(0, 6).map(s => ({ caption: String(s.caption || ""), svg: cleanSvg(s.svg) }));
-  }
-  return res.json(lesson);
+  return send(200, lesson, true);
 };
