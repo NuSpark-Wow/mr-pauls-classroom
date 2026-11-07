@@ -423,7 +423,7 @@ const norm = s => s.toLowerCase().replace(/[?!.¿¡,]+/g, " ").replace(/\s+/g, "
 async function fetchPart(part, question, context, opts){
   let r;
   if (!context && !opts.more) {
-    const url = `/api/ask?part=${part}&level=${level}&lang=${lang}&v=3&q=${encodeURIComponent(norm(question))}`;
+    const url = `/api/ask?part=${part}&level=${level}&lang=${lang}&v=5&q=${encodeURIComponent(norm(question))}`;
     r = await fetch(url);
   } else {
     r = await fetch("/api/ask", { method:"POST", headers:{ "content-type":"application/json" },
@@ -435,7 +435,7 @@ async function fetchPart(part, question, context, opts){
 // Reads the drawing as it streams in: one finished step per line, drawn right away.
 async function streamBoard(question, context, opts, onStep){
   let r;
-  if (!context && !opts.more) r = await fetch(`/api/ask?part=board&level=${level}&lang=${lang}&v=4&q=${encodeURIComponent(norm(question))}`);
+  if (!context && !opts.more) r = await fetch(`/api/ask?part=board&level=${level}&lang=${lang}&v=5&q=${encodeURIComponent(norm(question))}`);
   else r = await fetch("/api/ask", { method:"POST", headers:{ "content-type":"application/json" },
     body: JSON.stringify({ part: "board", question, level, lang, context: context || "", more: !!opts.more, prev: opts.prev || "" }) });
   if (!r.ok) throw new Error("H" + r.status);
