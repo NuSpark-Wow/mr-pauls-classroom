@@ -273,8 +273,8 @@ const T = {
   en: {
     brand: "Mr. Paul's <span>Classroom</span>", little: "Grades K–2<small>Little Learners</small>", big: "Grades 3–6<small>Big Learners</small>",
     man: "🔊 Man", woman: "🔊 Woman", present: "🖥️ Classroom", presentOff: "✖ Exit classroom",
-    placeholder: "Tap the mic and ask, or type here…", hint: "Tap the red mic and ask Mr. Paul anything you want to learn!",
-    noMic: "Type your question for Mr. Paul! (Talking works in Chrome, Edge, and Safari.)", listening: "I'm listening… ask your question!",
+    placeholder: "Ask anything…", hint: "Tap the red mic and ask Mr. Paul anything you want to learn!",
+    noMic: "Tap the red mic, then the 🎤 on your keyboard to talk. Or just type!", listening: "I'm listening… ask your question!",
     heard: "Is that right? Tap Ask! (Or tap the mic to try again.)", nothing: "I didn't hear anything. Tap the mic and try again!",
     micBlocked: "Ask a grown-up to allow the microphone, or type your question.", ask: "Ask", tryLabel: "Try:",
     thinking: "Thinking...", drawing: "Drawing...", markers: "Mr. Paul is getting his markers ready…", fresh: "Mr. Paul is grabbing a fresh marker…",
@@ -299,8 +299,8 @@ const T = {
   es: {
     brand: "La Clase de <span>Mr. Paul</span>", little: "Grados K–2<small>Pequeños</small>", big: "Grados 3–6<small>Grandes</small>",
     man: "🔊 Hombre", woman: "🔊 Mujer", present: "🖥️ Modo clase", presentOff: "✖ Salir",
-    placeholder: "Toca el micrófono y pregunta, o escribe aquí…", hint: "¡Toca el micrófono rojo y pregúntale a Mr. Paul lo que quieras aprender!",
-    noMic: "¡Escribe tu pregunta! (Hablar funciona en Chrome, Edge y Safari.)", listening: "Te escucho… ¡haz tu pregunta!",
+    placeholder: "Pregunta lo que quieras…", hint: "¡Toca el micrófono rojo y pregúntale a Mr. Paul lo que quieras aprender!",
+    noMic: "Toca el micrófono rojo y luego el 🎤 de tu teclado para hablar. ¡O escribe!", listening: "Te escucho… ¡haz tu pregunta!",
     heard: "¿Está bien? ¡Toca Preguntar! (O toca el micrófono otra vez.)", nothing: "No escuché nada. ¡Toca el micrófono e intenta otra vez!",
     micBlocked: "Pídele a un adulto que permita el micrófono, o escribe tu pregunta.", ask: "Preguntar", tryLabel: "Prueba:",
     thinking: "Pensando...", drawing: "Dibujando...", markers: "Mr. Paul está preparando sus marcadores…", fresh: "Mr. Paul busca otro marcador…",
@@ -402,7 +402,8 @@ function startListening(){
   try { stopVoice(); rec.start(); listening = true; $("mic").classList.add("listening"); $("mic").textContent = "👂"; $("hint").textContent = t().listening; } catch(e) {}
 }
 if (!SR) {
-  $("mic").classList.add("hide");
+  // This browser can't turn speech into text, so open the keyboard: every phone keyboard has its own 🎤
+  $("mic").onclick = () => { unlock(); $("q").focus(); $("hint").textContent = t().noMic; };
 } else {
   rec = new SR(); rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
   rec.onresult = e => { let s = ""; for (const r of e.results) s += r[0].transcript; $("q").value = s; };
