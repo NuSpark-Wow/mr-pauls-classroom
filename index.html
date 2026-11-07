@@ -325,7 +325,7 @@ const T = {
 };
 
 let level = "little", lang = "en", lesson = null, busy = false, followUp = "", reqId = 0;
-let groups = [], shown = 0, manual = false, lastProgress = 0;
+let groups = [], shown = 0, manual = false, lastProgress = 0, boardStart = 0;
 let words = [], speech = "";
 let ctx = null, srcNode = null, lastAudio = null, raf = 0, voiceOff = false, speaking = false;
 const t = () => T[lang];
@@ -491,8 +491,9 @@ async function ask(text, context, opts){
   $("thinking").classList.remove("on");
   if (steps && steps.length) {
     buildBoard(steps);
-    if (lastProgress >= 1 || !speaking) { manual = true; playSteps(); }
-    else onProgress(lastProgress);
+    // a late drawing always starts at Step 1 and spreads over the rest of the talking
+    if (speaking && lastProgress < 0.85) { boardStart = lastProgress; onProgress(lastProgress); }
+    else { manual = true; playSteps(); }
   } else {
     buildBoard([{ caption: t().otherCap, svg: simpleCard("redirect") }]); revealNext();
   }
@@ -590,7 +591,7 @@ function sanitize(markup){
   return out;
 }
 function buildBoard(steps){
-  const svg = $("svg"); svg.innerHTML = ""; groups = []; shown = 0; manual = false; $("legend").classList.add("hide");
+  const svg = $("svg"); svg.innerHTML = ""; groups = []; shown = 0; manual = false; boardStart = 0; $("legend").classList.add("hide");
   steps.forEach(s => {
     const g = sanitize(s.svg || "") || document.createElementNS(NS, "g");
     g.style.display = "none"; g.dataset.caption = s.caption || "";
@@ -678,7 +679,7 @@ $("replay").onclick = () => { manual = true; playSteps(); };
 function onProgress(f){
   lastProgress = Math.max(lastProgress, f);
   if (manual) return;
-  while (shown < groups.length && f >= shown / groups.length) revealNext();
+  while (shown < groups.length && f >= boardStart + (1 - boardStart) * shown / groups.length) revealNext();
 }
 
 /* ---------- voice + read-along ---------- */
