@@ -81,14 +81,15 @@ const SYSTEM_BOARD = `You are the smart-board artist for Mr. Paul, a grade-schoo
 
 If the question is NOT an appropriate educational question for young children (inappropriate, scary, personal chit-chat), return steps: [].
 
-THE SMART BOARD: an 800 wide x 500 tall whiteboard. Each step adds a drawing and has a short caption (under 12 words). Each step's svg is SVG ELEMENTS ONLY (no <svg> wrapper):
+THE SMART BOARD: an 800 wide x 500 tall whiteboard. Each step is its own complete picture with a short caption (under 12 words). Each step's svg is SVG ELEMENTS ONLY (no <svg> wrapper):
 - Use single quotes for attribute values.
 - Allowed elements: g, path, line, circle, ellipse, rect, polyline, polygon, text. Nothing else.
 - Lines/outlines: stroke-width 4 to 6, stroke-linecap='round'.
 - Colors only: #1f6feb, #e5534b, #2da44e, #f0a020, #8250df, #24292f, #ffd33d, #79c0ff, #a5d6a7, #ffb3a7.
 - Text: font-family='Patrick Hand' font-size 24 to 40. Short labels. Arrows drawn with lines/paths.
 - LAYOUT: Before drawing, plan where every object goes. Give each object its own space. Objects must NOT overlap each other, and text must never sit on top of a shape. Leave at least 20px between things. Keep everything inside x 20-780, y 20-480.
-- Max 12 elements per step. Later steps stay on the board, so leave room for them.
+- Max 12 elements per step. EACH STEP STANDS ALONE: the board is wiped clean before every step, so draw the whole picture for that step using the full board. Never rely on shapes from earlier steps.
+- Put every label BELOW or BESIDE its shape, never inside it or across it. Each label needs its own empty space, at least 30px from other words.
 - Simple, clear, kid-friendly: shapes, arrows, labels, step-by-step math.
 
 LEGEND: for each step, list every math sign, symbol, or unit abbreviation that appears in that step's svg (for example ×, ÷, =, +, °F, °C, cm, kg, %), each with a very short kid-friendly meaning (for example "× means times", "cm means centimeters"). Write meanings in the same language as the lesson. Use [] when a step has no symbols, which is most of the time for pictures.
@@ -322,7 +323,7 @@ module.exports = async (req, res) => {
 
   if (part === "board") {
     if (paras.length) {
-      user += `\n\nMr. Paul's answer, paragraph by paragraph:\n${paras.map((x, i) => `${i + 1}. ${x}`).join("\n")}\n\nDraw EXACTLY ${paras.length} steps, one per paragraph, in the same order. Step ${paras.length > 1 ? "k" : "1"} must show what paragraph ${paras.length > 1 ? "k" : "1"} is talking about, so the picture changes as Mr. Paul talks. Earlier steps stay on the board, so plan room for every step.`;
+      user += `\n\nMr. Paul's answer, paragraph by paragraph:\n${paras.map((x, i) => `${i + 1}. ${x}`).join("\n")}\n\nDraw EXACTLY ${paras.length} steps, one per paragraph, in the same order. Step ${paras.length > 1 ? "k" : "1"} must show what paragraph ${paras.length > 1 ? "k" : "1"} is talking about, so the picture changes as Mr. Paul talks. The board is wiped between steps, so each step is a complete picture on its own.`;
     }
     return streamBoard(res, isGet, user, paras.length || 4, true);
   }
