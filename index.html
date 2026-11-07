@@ -132,6 +132,11 @@ button{font-family:inherit;cursor:pointer}
 .thumbs button{border:0;background:#f3efe6;border-radius:10px;padding:8px 10px;font-size:18px}
 .thumbs button:hover{background:#e9e2d2}
 .print-only{display:none}
+.legend{margin:8px 4px 2px;padding:10px 6px 2px;border-top:2px dashed rgba(255,255,255,.3);display:flex;flex-wrap:wrap;gap:8px;color:#fff}
+.legend .lt{width:100%;font-size:13px;font-weight:900;letter-spacing:.4px;text-transform:uppercase;color:#cfe0ff}
+.legend button{border:0;background:rgba(255,255,255,.14);color:#fff;border-radius:999px;padding:8px 14px;font-weight:800;font-size:16px}
+.legend button:hover{background:rgba(255,255,255,.26)}
+.legend b{font-family:'Patrick Hand',cursive;font-size:22px;color:#ffd33d;margin-right:6px}
 
 /* Classroom mode: big board for a whole class */
 body.present .wrap{max-width:none;padding:12px 24px}
@@ -151,6 +156,9 @@ body.present .caption{font-size:clamp(22px,2vw,30px)}
   .room{grid-template-columns:1fr}
   .board-wrap{box-shadow:none;background:#fff;border:3px solid #33475b;padding:8px}
   .tray{color:#24292f}
+  .legend{color:#24292f;border-top-color:#ccc}
+  .legend button{background:#f3efe6;color:#24292f}
+  .legend .lt{color:#57606a}
   .panel,.card{box-shadow:none;border:1px solid #ddd;break-inside:avoid}
   .extras{grid-template-columns:1fr 1fr}
   .read .w{color:#24292f !important;background:none !important}
@@ -207,6 +215,7 @@ body.present .caption{font-size:clamp(22px,2vw,30px)}
           <button id="replay" aria-label="Draw it again" disabled>⟲</button>
         </div>
       </div>
+      <div class="legend hide" id="legend"></div>
     </div>
 
     <div class="panel">
@@ -269,7 +278,7 @@ const T = {
     micBlocked: "Ask a grown-up to allow the microphone, or type your question.", ask: "Ask", tryLabel: "Try:",
     thinking: "Thinking...", drawing: "Drawing...", markers: "Mr. Paul is getting his markers ready…", fresh: "Mr. Paul is grabbing a fresh marker…",
     another: "Ask another question anytime!", tapAgain: "Tap Ask to try again.", watch: "Watch the board!", start: "Ask a question to start!",
-    step: "Step", welcomeTitle: "Hi, I'm Mr. Paul! 👋",
+    step: "Step", legend: "🔤 What these mean", welcomeTitle: "Hi, I'm Mr. Paul! 👋",
     welcomeText: "Ask me a question with your voice or by typing. I'll explain it, draw it on my smart board, and then we'll do a quick quiz together!",
     again: "🔊 Hear it again", stop: "⏹ Stop", print: "🖨️ Print", helpful: "Helpful?", thanks: "Thanks! 💛",
     hImg: "📷 What it looks like", hWow: "⭐ Surprise Fact!", hTry: "🧪 Try It at Home", hQuiz: "✏️ Quick Check",
@@ -295,7 +304,7 @@ const T = {
     micBlocked: "Pídele a un adulto que permita el micrófono, o escribe tu pregunta.", ask: "Preguntar", tryLabel: "Prueba:",
     thinking: "Pensando...", drawing: "Dibujando...", markers: "Mr. Paul está preparando sus marcadores…", fresh: "Mr. Paul busca otro marcador…",
     another: "¡Haz otra pregunta cuando quieras!", tapAgain: "Toca Preguntar para intentar otra vez.", watch: "¡Mira la pizarra!", start: "¡Haz una pregunta para empezar!",
-    step: "Paso", welcomeTitle: "¡Hola, soy Mr. Paul! 👋",
+    step: "Paso", legend: "🔤 Qué significan", welcomeTitle: "¡Hola, soy Mr. Paul! 👋",
     welcomeText: "Hazme una pregunta con tu voz o escribiendo. Te la explico, la dibujo en mi pizarra, ¡y luego hacemos un juego de preguntas!",
     again: "🔊 Escuchar otra vez", stop: "⏹ Parar", print: "🖨️ Imprimir", helpful: "¿Te ayudó?", thanks: "¡Gracias! 💛",
     hImg: "📷 Así se ve", hWow: "⭐ ¡Dato sorpresa!", hTry: "🧪 Pruébalo en casa", hQuiz: "✏️ Repaso rápido",
@@ -412,7 +421,7 @@ const norm = s => s.toLowerCase().replace(/[?!.¿¡,]+/g, " ").replace(/\s+/g, "
 async function fetchPart(part, question, context, opts){
   let r;
   if (!context && !opts.more) {
-    const url = `/api/ask?part=${part}&level=${level}&lang=${lang}&q=${encodeURIComponent(norm(question))}`;
+    const url = `/api/ask?part=${part}&level=${level}&lang=${lang}&v=2&q=${encodeURIComponent(norm(question))}`;
     r = await fetch(url);
   } else {
     r = await fetch("/api/ask", { method:"POST", headers:{ "content-type":"application/json" },
@@ -579,10 +588,11 @@ function sanitize(markup){
   return out;
 }
 function buildBoard(steps){
-  const svg = $("svg"); svg.innerHTML = ""; groups = []; shown = 0; manual = false;
+  const svg = $("svg"); svg.innerHTML = ""; groups = []; shown = 0; manual = false; $("legend").classList.add("hide");
   steps.forEach(s => {
     const g = sanitize(s.svg || "") || document.createElementNS(NS, "g");
     g.style.display = "none"; g.dataset.caption = s.caption || "";
+    g._legend = Array.isArray(s.legend) ? s.legend : [];
     svg.appendChild(g); groups.push(g);
   });
   svg.querySelectorAll("text").forEach(el => el.addEventListener("click", () => { if (!speaking) sayShort(el.textContent); }));
@@ -621,7 +631,23 @@ function playSteps(){
   groups.forEach(g => g.style.display = "none"); shown = 0;
   const go = () => { if (shown < groups.length) { revealNext(); setTimeout(go, 1600); } }; go();
 }
+// "What these mean": every symbol on the steps drawn so far (tap one to hear it)
+function renderLegend(){
+  const seen = new Map();
+  groups.slice(0, shown).forEach(g => (g._legend || []).forEach(l => { if (!seen.has(l.symbol)) seen.set(l.symbol, l.meaning); }));
+  const box = $("legend"); box.innerHTML = "";
+  if (!seen.size) { box.classList.add("hide"); return; }
+  const tt = document.createElement("div"); tt.className = "lt"; tt.textContent = t().legend; box.appendChild(tt);
+  seen.forEach((meaning, symbol) => {
+    const b = document.createElement("button"); const s = document.createElement("b"); s.textContent = symbol;
+    b.appendChild(s); b.appendChild(document.createTextNode(meaning));
+    b.onclick = () => { if (!speaking) sayShort(meaning); };
+    box.appendChild(b);
+  });
+  box.classList.remove("hide");
+}
 function updateCtrls(){
+  renderLegend();
   $("prev").disabled = shown <= 1; $("next").disabled = shown >= groups.length; $("replay").disabled = groups.length === 0;
 }
 $("next").onclick = () => { manual = true; revealNext(); };
