@@ -299,6 +299,8 @@ module.exports = async (req, res) => {
   const context = isGet ? "" : String(src.context || "").slice(0, 120);
   const more = !isGet && src.more === true;
   const prev = isGet ? "" : String(src.prev || "").slice(0, 1200);
+  // the drawing request carries Mr. Paul's answer, one paragraph per line, so each picture matches a paragraph
+  const paras = String(src.a || "").split("\n").map(x => x.trim()).filter(Boolean).slice(0, 4).map(x => x.slice(0, 700));
   if (!question) return send(400, { error: "empty" });
 
   if (HELP_WORDS.test(question)) return send(200, part === "board" ? { steps: [] } : HELP[lang], true);
@@ -315,10 +317,15 @@ module.exports = async (req, res) => {
 
   let user = `${LEVELS[level]}${lang === "es" ? "\n\n" + SPANISH : ""}\n\n${context ? `We were just learning about: ${context}\n` : ""}Child's question: ${question}`;
   if (more) {
-    user = `${LEVELS[level]}${lang === "es" ? "\n\n" + SPANISH : ""}\n\nThe child tapped "Tell me more" about: ${context}\nHere is what Mr. Paul ALREADY taught them:\n${prev}\n\nGo one step deeper on this same topic, at the same grade level, with NEW facts. Do not repeat what was already said. Make the title fun, like "More About ...".`;
+    user = `${LEVELS[level]}${lang === "es" ? "\n\n" + SPANISH : ""}\n\nThe child tapped "Tell me more" about: ${context}\nHere is what Mr. Paul ALREADY taught them:\n${prev}\n\nGo one step deeper on this same topic, at the same grade level, with NEW facts. Do not repeat what was already said. Make the title fun, like "More About ...".${/^(tell me more|cu[eé]ntame m[aá]s)/i.test(question) ? "" : `\nThe child especially wants to know: ${question}`}`;
   }
 
-  if (part === "board") return streamBoard(res, isGet, user, 6, true);
+  if (part === "board") {
+    if (paras.length) {
+      user += `\n\nMr. Paul's answer, paragraph by paragraph:\n${paras.map((x, i) => `${i + 1}. ${x}`).join("\n")}\n\nDraw EXACTLY ${paras.length} steps, one per paragraph, in the same order. Step ${paras.length > 1 ? "k" : "1"} must show what paragraph ${paras.length > 1 ? "k" : "1"} is talking about, so the picture changes as Mr. Paul talks. Earlier steps stay on the board, so plan room for every step.`;
+    }
+    return streamBoard(res, isGet, user, paras.length || 4, true);
+  }
 
   let lesson;
   try {
