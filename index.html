@@ -27,6 +27,8 @@ button{font-family:inherit;cursor:pointer}
 .levels button{border:0;background:transparent;padding:10px 18px;border-radius:999px;font-weight:800;font-size:16px;color:var(--soft)}
 .levels button.on{background:var(--card);color:var(--ink);box-shadow:0 2px 6px rgba(0,0,0,.12)}
 .levels small{display:block;font-size:12px;font-weight:700;opacity:.75}
+.top-right{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.voices button{padding:10px 14px;font-size:15px}
 
 /* ask bar */
 .ask{background:var(--card);border-radius:var(--radius);padding:14px;display:flex;gap:12px;align-items:center;box-shadow:0 4px 16px rgba(80,60,20,.08)}
@@ -123,9 +125,15 @@ button{font-family:inherit;cursor:pointer}
 
   <div class="top">
     <div class="brand">Mr. Paul's <span>Classroom</span></div>
-    <div class="levels" role="group" aria-label="Choose your grade">
-      <button id="lvLittle" class="on">Grades 1–3<small>Little Learners</small></button>
-      <button id="lvBig">Grades 4–6<small>Big Learners</small></button>
+    <div class="top-right">
+      <div class="levels voices" role="group" aria-label="Choose a voice">
+        <button id="vMan" class="on">🔊 Man</button>
+        <button id="vWoman">🔊 Woman</button>
+      </div>
+      <div class="levels" role="group" aria-label="Choose your grade">
+        <button id="lvLittle" class="on">Grades K–2<small>Little Learners</small></button>
+        <button id="lvBig">Grades 3–6<small>Big Learners</small></button>
+      </div>
     </div>
   </div>
 
@@ -267,17 +275,30 @@ async function ask(text, context){
   busy = true; $("go").disabled = true; $("go").classList.remove("ready");
   stopVoice(); $("thinking").classList.add("on");
   $("hint").textContent = "Mr. Paul is getting his markers ready…";
+  let data = null, reason = "N0";
+  for (let attempt = 0; attempt < 2 && !data; attempt++) {
+    if (attempt === 1) $("hint").textContent = "Mr. Paul is grabbing a fresh marker…";
+    try {
+      const r = await fetch("/api/ask", { method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify({ question, level, context: context || "" }) });
+      const d = await r.json().catch(() => null);
+      if (d && Array.isArray(d.answer) && d.answer.length) data = d;
+      else reason = (d && d.reason) || ("H" + r.status);
+    } catch(e) { reason = "N0"; }
+  }
   try {
-    const r = await fetch("/api/ask", { method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify({ question, level, context: context || "" }) });
-    const data = await r.json();
-    if (!data || !data.answer) throw new Error("bad");
+    if (!data) throw new Error(reason);
     lesson = data; render();
     $("hint").textContent = "Ask another question anytime!";
   } catch(e) {
-    lesson = null;
+    lesson = null; stopVoice();
     $("title").textContent = "Oops! My marker ran out.";
     $("read").innerHTML = "<p>Something went wrong. Please try your question again.</p>";
-    $("caption").textContent = "Try again!";
+    const code = document.createElement("p"); code.style.cssText = "font-size:12px;color:#9aa3ad;margin:0";
+    code.textContent = "Code: " + (data ? "P8" : e.message); $("read").appendChild(code);
+    $("playrow").classList.add("hide"); $("vocab").classList.add("hide"); $("extras").classList.add("hide");
+    ["quizCard","deepCard"].forEach(id => $(id).classList.add("hide"));
+    buildBoard([{ caption: "Try again!", svg: simpleCard("redirect") }]); revealNext();
+    $("hint").textContent = "Tap Ask to try again.";
   } finally {
     $("thinking").classList.remove("on"); busy = false; $("go").disabled = false;
   }
@@ -442,7 +463,7 @@ $("again").onclick = () => { unlock(); if (lastAudio) playBuffer(lastAudio); els
 async function speak(){
   if (!speech) return;
   lastAudio = null;
-  if (!voiceOff) {
+  if (!voiceOff && voicePref === "man") {
     try {
       const r = await fetch("/api/speak", { method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify({ text: speech }) });
       if (r.status === 501) voiceOff = true;
@@ -478,16 +499,31 @@ function playBuffer(a){
   tick();
 }
 
+let voicePref = "man";
+try { if (localStorage.getItem("mpc_voice") === "woman") voicePref = "woman"; } catch(e) {}
+function setVoicePref(p){
+  voicePref = p;
+  $("vMan").classList.toggle("on", p === "man"); $("vWoman").classList.toggle("on", p === "woman");
+  try { localStorage.setItem("mpc_voice", p); } catch(e) {}
+}
+$("vMan").onclick = () => { setVoicePref("man"); unlock(); sayShort("Hi! I'll read your answers."); };
+$("vWoman").onclick = () => { setVoicePref("woman"); unlock(); sayShort("Hi! I'll read your answers."); };
+setVoicePref(voicePref);
+
 function pickVoice(){
   const vs = speechSynthesis.getVoices().filter(v => /^en(-|_)US/i.test(v.lang));
-  return vs.find(v => /male|daniel|alex|aaron|guy|david/i.test(v.name)) || vs[0] || null;
+  const natural = vs.filter(v => /natural|online|enhanced|premium/i.test(v.name));
+  const male = /\bmale\b|andrew|brian|christopher|eric|guy|roger|steffan|aaron|evan|tom|nathan|alex|daniel|david|mark|fred/i;
+  const female = /female|aria|jenny|ava|emma|michelle|ana\b|samantha|zira|allison|susan|joanna|nicky|google us english/i;
+  const want = voicePref === "woman" ? (v => female.test(v.name) && !/\bmale\b/i.test(v.name.replace(/female/i, ""))) : (v => male.test(v.name) && !female.test(v.name));
+  return natural.find(want) || vs.find(want) || natural[0] || vs[0] || null;
 }
 function browserVoice(text){
   if (!("speechSynthesis" in window)) { onProgress(1); return; }
   stopVoice();
   const u = new SpeechSynthesisUtterance(text);
   const v = pickVoice(); if (v) u.voice = v;
-  u.rate = level === "little" ? 0.88 : 0.97; u.pitch = 1;
+  u.rate = level === "little" ? 0.95 : 1.03; u.pitch = 1.12;
   u.onstart = () => { setSpeaking(true); onProgress(0); };
   u.onboundary = e => { highlight(e.charIndex); onProgress(e.charIndex / text.length); };
   u.onend = () => { setSpeaking(false); words.forEach(w => { w.el.classList.remove("on"); w.el.classList.add("done"); }); onProgress(1); };
@@ -496,7 +532,7 @@ function browserVoice(text){
 }
 function sayShort(text){
   if (!("speechSynthesis" in window) || !text) return;
-  const u = new SpeechSynthesisUtterance(text); const v = pickVoice(); if (v) u.voice = v; u.rate = .9;
+  const u = new SpeechSynthesisUtterance(text); const v = pickVoice(); if (v) u.voice = v; u.rate = 1; u.pitch = 1.12;
   speechSynthesis.cancel(); speechSynthesis.speak(u);
 }
 
@@ -539,7 +575,7 @@ function buildQuiz(q){
 function welcome(){
   buildBoard([
     { caption: "Hi! I'm Mr. Paul.", svg: "<text x='400' y='110' text-anchor='middle' font-family='Patrick Hand' font-size='60' fill='#1f6feb'>Hi! I'm Mr. Paul.</text>" },
-    { caption: "I love questions!", svg: "<circle cx='400' cy='250' r='70' fill='#fff7d6' stroke='#f0a020' stroke-width='6'/><rect x='370' y='315' width='60' height='40' rx='8' fill='#79c0ff' stroke='#1f6feb' stroke-width='5'/><line x1='300' y1='190' x2='275' y2='170' stroke='#f0a020' stroke-width='6' stroke-linecap='round'/><line x1='500' y1='190' x2='525' y2='170' stroke='#f0a020' stroke-width='6' stroke-linecap='round'/><line x1='400' y1='160' x2='400' y2='130' stroke='#f0a020' stroke-width='6' stroke-linecap='round'/><path d='M380 270 Q 400 230 420 270' fill='none' stroke='#f0a020' stroke-width='5' stroke-linecap='round'/>" },
+    { caption: "I love questions!", svg: "<circle cx='400' cy='250' r='70' fill='#fff7d6' stroke='#f0a020' stroke-width='6'/><rect x='370' y='315' width='60' height='40' rx='8' fill='#79c0ff' stroke='#1f6feb' stroke-width='5'/><line x1='300' y1='190' x2='275' y2='170' stroke='#f0a020' stroke-width='6' stroke-linecap='round'/><line x1='500' y1='190' x2='525' y2='170' stroke='#f0a020' stroke-width='6' stroke-linecap='round'/><line x1='400' y1='160' x2='400' y2='130' stroke='#f0a020' stroke-width='6' stroke-linecap='round'/><path d='M378 255 Q 400 285 422 255' fill='none' stroke='#f0a020' stroke-width='5' stroke-linecap='round'/>" },
     { caption: "Ask me anything!", svg: "<text x='400' y='440' text-anchor='middle' font-family='Patrick Hand' font-size='46' fill='#2da44e'>Ask me anything!</text>" }
   ]);
   let i = 0; const go = () => { if (i < groups.length) { revealNext(); i++; setTimeout(go, 900); } };
