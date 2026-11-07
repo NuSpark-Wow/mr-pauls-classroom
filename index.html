@@ -102,6 +102,12 @@ button{font-family:inherit;cursor:pointer}
 
 .deeper{margin-top:16px}
 .deeper .row{display:flex;flex-wrap:wrap;gap:10px}
+.big-btns{display:flex;gap:12px;flex-wrap:wrap;margin:4px 0 14px}
+.bigbtn{border:0;border-radius:16px;padding:16px 22px;font-weight:900;font-size:19px;color:#fff;flex:1;min-width:200px}
+.bigbtn.ask-about{background:var(--red);box-shadow:0 4px 0 #b83c35}
+.bigbtn.more{background:var(--green);box-shadow:0 4px 0 #1f7a38}
+.bigbtn:active{transform:translateY(3px)}
+.deeper .sub{font-size:15px;font-weight:800;color:var(--soft);margin-bottom:8px}
 .deeper .chip{font-size:16px;padding:10px 16px;background:#f3eefe;border-color:#e2d6fb;color:#5b3ab0}
 
 .notice{margin-top:18px;font-size:13.5px;color:var(--soft);line-height:1.5;text-align:center;font-weight:700}
@@ -151,7 +157,7 @@ button{font-family:inherit;cursor:pointer}
     <div class="board-wrap">
       <div class="board">
         <svg id="svg" viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" aria-label="Mr. Paul's smart board"></svg>
-        <div class="thinking" id="thinking"><div>Mr. Paul is thinking…</div><div class="dots"><span></span><span></span><span></span></div></div>
+        <div class="thinking" id="thinking"><div>Thinking...</div><div class="dots"><span></span><span></span><span></span></div></div>
       </div>
       <div class="tray">
         <div class="caption" id="caption">Ask a question to start!</div>
@@ -192,7 +198,12 @@ button{font-family:inherit;cursor:pointer}
   </div>
 
   <div class="card deeper hide" id="deepCard">
-    <h3>🔍 Want to go deeper?</h3>
+    <h3>🔍 Keep learning!</h3>
+    <div class="big-btns">
+      <button class="bigbtn ask-about" id="askAbout">🎤 Ask about this</button>
+      <button class="bigbtn more" id="tellMore">➕ Tell me more</button>
+    </div>
+    <div class="sub">Or try one of these:</div>
     <div class="row" id="deeper"></div>
   </div>
 
@@ -268,7 +279,11 @@ $("go").onclick = () => { unlock(); ask(); };
 $("q").addEventListener("keydown", e => { if (e.key === "Enter") { unlock(); ask(); } });
 
 /* ---------- ask ---------- */
-async function ask(text, context){
+let followUp = "";
+async function ask(text, context, opts){
+  opts = opts || {};
+  if (!context && followUp) context = followUp;
+  followUp = "";
   const question = (text || $("q").value).trim();
   if (!question || busy) return;
   if (text) $("q").value = text;
@@ -279,7 +294,7 @@ async function ask(text, context){
   for (let attempt = 0; attempt < 2 && !data; attempt++) {
     if (attempt === 1) $("hint").textContent = "Mr. Paul is grabbing a fresh marker…";
     try {
-      const r = await fetch("/api/ask", { method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify({ question, level, context: context || "" }) });
+      const r = await fetch("/api/ask", { method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify({ question, level, context: context || "", more: !!opts.more, prev: opts.prev || "" }) });
       const d = await r.json().catch(() => null);
       if (d && Array.isArray(d.answer) && d.answer.length) data = d;
       else reason = (d && d.reason) || ("H" + r.status);
@@ -342,10 +357,21 @@ function render(){
     if (L.try_it) { $("try").textContent = L.try_it; $("tryCard").classList.remove("hide"); ex.classList.remove("hide"); }
     if (L.image_query) loadImage(L.image_query);
     if (L.quiz && L.quiz.options && L.quiz.options.length) buildQuiz(L.quiz);
+    $("deeper").innerHTML = ""; document.querySelector(".deeper .sub").classList.toggle("hide", !(L.deeper && L.deeper.length));
     if (L.deeper && L.deeper.length) {
       const row = $("deeper"); row.innerHTML = "";
       L.deeper.slice(0,3).forEach(t => { const b = document.createElement("button"); b.className = "chip"; b.textContent = t; b.onclick = () => { unlock(); ask(t, L.title); window.scrollTo({ top: 0, behavior: "smooth" }); }; row.appendChild(b); });
       $("deepCard").classList.remove("hide");
+    }
+    if (isLesson) {
+      $("deepCard").classList.remove("hide");
+      $("tellMore").onclick = () => { unlock(); ask("Tell me more about " + L.title, L.title, { more: true, prev: (L.answer || []).join(" ") }); window.scrollTo({ top: 0, behavior: "smooth" }); };
+      $("askAbout").onclick = () => {
+        unlock(); followUp = L.title; $("q").value = ""; window.scrollTo({ top: 0, behavior: "smooth" });
+        $("hint").textContent = "What do you want to know about " + L.title + "? Ask away!";
+        if (rec && !listening) { try { stopVoice(); rec.start(); listening = true; $("mic").classList.add("listening"); $("mic").textContent = "👂"; } catch(e) {} }
+        else $("q").focus();
+      };
     }
   }
   speak();
