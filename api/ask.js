@@ -54,6 +54,7 @@ DECIDE THE TYPE FIRST:
 - "lesson": an educational question. Answer it.
 - "redirect": silly, chatty, or off-topic (favorite color, "do you like pizza", jokes, games, personal chit-chat). Respond playfully in 1-2 short sentences and suggest a related learning question. Example: "Ha! Let's learn something. Want to know how pizza ovens get so hot?"
 - "grownup": inappropriate or not for kids (sexual topics, puberty, drugs, alcohol, weapons-making, gore, crime how-to, scary current events, adult relationships, religion or politics opinions). Calm, kind, never scold, NEVER repeat or describe the question.
+- When in doubt, TEACH. Everyday curiosity is always a "lesson": how things are built or made (roofs, houses, bridges, cars, pencils, candy), jobs, tools, machines, food, cooking, weather, sports, games, music, money basics, the body, animals, plants, places, inventions, and history. "grownup" is ONLY for the specific topics listed above.
 - "help": the child sounds hurt, scared, unsafe, sad about something serious, or mentions being harmed.
 
 GRAY AREAS (answer as "lesson", gently):
@@ -166,7 +167,7 @@ async function streamClaude(system, user, maxTokens, model, onText) {
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "content-type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
-    body: JSON.stringify({ model, max_tokens: maxTokens, system, stream: true, messages: [{ role: "user", content: user }] })
+    body: JSON.stringify({ model, max_tokens: maxTokens, system, stream: true, thinking: { type: "disabled" }, messages: [{ role: "user", content: user }] })
   });
   if (!r.ok) { const t = await r.text().catch(() => ""); throw new Error("api_" + r.status + " " + t.slice(0, 200)); }
   const reader = r.body.getReader(); const dec = new TextDecoder(); let buf = "";
@@ -266,12 +267,16 @@ function cleanSvg(svg) {
 async function safetyCheck(question, lesson) {
   const text = [lesson.title, ...(lesson.answer || []), lesson.wow, lesson.try_it, lesson.image_query].join("\n");
   const data = await anthropic({
-    model: CHECK_MODEL, max_tokens: 5,
+    model: CHECK_MODEL, max_tokens: 20, thinking: { type: "disabled" },
     system: "You review content shown to children ages 5-12 on an educational site (English or Spanish). Reply with exactly one word: SAFE or UNSAFE. UNSAFE means it contains sexual content, graphic violence or gore, drugs or alcohol, dangerous instructions, scary or disturbing detail, personal information, opinions on religion or politics, or anything a careful teacher would not show this age. Normal science about the body (blood, heart, bones) is SAFE.",
     messages: [{ role: "user", content: `Child's question: ${question}\n\nContent to show:\n${text}` }]
   });
-  const verdict = (data.content || []).map(b => b.text || "").join("");
-  return /^\s*SAFE/i.test(verdict);
+  const verdict = (data.content || []).filter(b => b.type === "text").map(b => b.text || "").join("");
+  if (!verdict.trim()) { console.error("safety check gave no answer"); throw new Error("blank_verdict"); }
+  // Only an explicit UNSAFE blocks; formatting like "**SAFE**" or "Safe." passes.
+  const unsafe = /UNSAFE|NOT\s+SAFE/i.test(verdict);
+  if (unsafe) console.error("safety check said UNSAFE for topic:", String(lesson && lesson.title || "").slice(0, 80));
+  return !unsafe;
 }
 
 module.exports = async (req, res) => {
