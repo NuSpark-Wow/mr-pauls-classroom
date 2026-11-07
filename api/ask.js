@@ -161,12 +161,17 @@ module.exports = async (req, res) => {
   const question = String(body.question || "").trim().slice(0, 200);
   const level = body.level === "big" ? "big" : "little";
   const context = String(body.context || "").slice(0, 120);
+  const more = body.more === true;
+  const prev = String(body.prev || "").slice(0, 1200);
   if (!question) return res.status(400).json({ error: "empty" });
 
   if (HELP_WORDS.test(question)) return res.json(HELP);
   if (BLOCK_WORDS.test(question)) return res.json(GROWNUP);
 
-  const user = `${LEVELS[level]}\n\n${context ? `We were just learning about: ${context}\n` : ""}Child's question: ${question}`;
+  let user = `${LEVELS[level]}\n\n${context ? `We were just learning about: ${context}\n` : ""}Child's question: ${question}`;
+  if (more) {
+    user = `${LEVELS[level]}\n\nThe child tapped "Tell me more" about: ${context}\nHere is what you ALREADY taught them:\n${prev}\n\nTeach a NEW lesson that goes one step deeper on this same topic, at the same grade level. Use new facts and a new drawing. Do not repeat what you already said. Make the title fun, like "More About ...".`;
+  }
   const start = Date.now();
   let lesson = null, lastErr = null;
 
