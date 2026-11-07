@@ -89,6 +89,7 @@ THE SMART BOARD: an 800 wide x 500 tall whiteboard. Each step adds a drawing and
 - Simple, clear, kid-friendly: shapes, arrows, labels, step-by-step math.
 
 LEGEND: for each step, list every math sign, symbol, or unit abbreviation that appears in that step's svg (for example ×, ÷, =, +, °F, °C, cm, kg, %), each with a very short kid-friendly meaning (for example "× means times", "cm means centimeters"). Write meanings in the same language as the lesson. Use [] when a step has no symbols, which is most of the time for pictures.
+FORMULAS: for every math sentence or formula written in a step (for example "5 × 3 = 15" or "Area = length × width"), give the "formula" exactly as written and an "explanation": one short, friendly sentence a kid can understand, ideally with a picture in words (for example "5 groups of 3 apples make 15 apples"). Same language as the lesson. Use [] if the step has none.
 
 Always respond by calling the give_board tool.`;
 
@@ -116,7 +117,7 @@ const BOARD_TOOL = {
   description: "Deliver the smart-board drawing steps.",
   input_schema: {
     type: "object",
-    properties: { steps: { type: "array", items: { type: "object", properties: { caption: { type: "string" }, svg: { type: "string" }, legend: { type: "array", items: { type: "object", properties: { symbol: { type: "string" }, meaning: { type: "string" } } } } } } } },
+    properties: { steps: { type: "array", items: { type: "object", properties: { caption: { type: "string" }, svg: { type: "string" }, legend: { type: "array", items: { type: "object", properties: { symbol: { type: "string" }, meaning: { type: "string" } } } }, formulas: { type: "array", items: { type: "object", properties: { formula: { type: "string" }, explanation: { type: "string" } } } } } } } },
     required: ["steps"]
   }
 };
@@ -226,7 +227,8 @@ module.exports = async (req, res) => {
     try {
       const b = await withRetry(() => callTool(SYSTEM_BOARD, BOARD_TOOL, user, 8000, j => Array.isArray(j.steps)), 25000);
       const steps = b.steps.slice(0, 6).map(s => ({ caption: String(s.caption || ""), svg: cleanSvg(s.svg),
-        legend: (Array.isArray(s.legend) ? s.legend : []).slice(0, 8).map(l => ({ symbol: String(l && l.symbol || "").slice(0, 12), meaning: String(l && l.meaning || "").slice(0, 80) })).filter(l => l.symbol && l.meaning) }));
+        legend: (Array.isArray(s.legend) ? s.legend : []).slice(0, 8).map(l => ({ symbol: String(l && l.symbol || "").slice(0, 12), meaning: String(l && l.meaning || "").slice(0, 80) })).filter(l => l.symbol && l.meaning),
+        formulas: (Array.isArray(s.formulas) ? s.formulas : []).slice(0, 3).map(x => ({ formula: String(x && x.formula || "").slice(0, 60), explanation: String(x && x.explanation || "").slice(0, 200) })).filter(x => x.formula && x.explanation) }));
       return send(200, { steps }, true);
     } catch (e) {
       return send(500, { error: "oops", reason: errorCode(e) });
