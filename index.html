@@ -125,6 +125,7 @@ button{font-family:inherit;cursor:pointer}
 
 .notice{margin-top:18px;font-size:13.5px;color:var(--soft);line-height:1.5;text-align:center;font-weight:700}
 .hide{display:none !important}
+.pfig-grid{display:none}
 
 @media (max-width:900px){
   .room{grid-template-columns:1fr}
@@ -169,6 +170,10 @@ body.present .caption{font-size:clamp(22px,2vw,30px)}
   .wrap{max-width:none;padding:0}
   .room{grid-template-columns:1fr}
   .board-wrap{box-shadow:none;background:#fff;border:3px solid #33475b;padding:8px}
+  body.pfigs .board, body.pfigs .tray{display:none !important}
+  .pfig-grid{display:grid !important;grid-template-columns:1fr 1fr;gap:10px}
+  .pfig{break-inside:avoid}.pfig svg{width:100%;height:auto;border:2px solid #d0d7de;border-radius:8px;background:#fff}
+  .pfig div{font-family:'Patrick Hand',cursive;font-size:15px;color:#24292f;margin-top:2px}
   .tray{color:#24292f}
   .legend{color:#24292f;border-top-color:#ccc}
   .legend button{background:#f3efe6;color:#24292f}
@@ -504,7 +509,7 @@ const norm = s => s.toLowerCase().replace(/[?!.¿¡,]+/g, " ").replace(/\s+/g, "
 async function fetchPart(part, question, context, opts){
   let r;
   if (!context && !opts.more) {
-    const url = `/api/ask?part=${part}&level=${level}&lang=${lang}&v=6&q=${encodeURIComponent(norm(question))}`;
+    const url = `/api/ask?part=${part}&level=${level}&lang=${lang}&v=7&q=${encodeURIComponent(norm(question))}`;
     r = await fetch(url);
   } else {
     r = await fetch("/api/ask", { method:"POST", headers:{ "content-type":"application/json" },
@@ -516,7 +521,7 @@ async function fetchPart(part, question, context, opts){
 // Reads the drawing as it streams in: one finished step per line, drawn right away.
 async function streamBoard(question, context, opts, a, onStep){
   let r;
-  if (!context && !opts.more) r = await fetch(`/api/ask?part=board&level=${level}&lang=${lang}&v=6&q=${encodeURIComponent(norm(question))}&a=${encodeURIComponent(a)}`);
+  if (!context && !opts.more) r = await fetch(`/api/ask?part=board&level=${level}&lang=${lang}&v=7&q=${encodeURIComponent(norm(question))}&a=${encodeURIComponent(a)}`);
   else r = await fetch("/api/ask", { method:"POST", headers:{ "content-type":"application/json" },
     body: JSON.stringify({ part: "board", question, level, lang, context: context || "", more: !!opts.more, prev: opts.prev || "", a }) });
   if (!r.ok) throw new Error("H" + r.status);
@@ -717,10 +722,27 @@ $("down").onclick = () => vote("down");
 
 /* ---------- printable recap ---------- */
 $("print").onclick = () => { track("print", { lang }); window.print(); };
+const settle = g => g.querySelectorAll("*").forEach(el => { el.style.transition = "none"; el.style.strokeDashoffset = 0; el.style.opacity = 1; el.style.fillOpacity = ""; });
 window.addEventListener("beforeprint", () => {
-  groups.forEach(g => { g.style.display = ""; g.querySelectorAll("*").forEach(el => { el.style.transition = "none"; el.style.strokeDashoffset = 0; el.style.opacity = 1; el.style.fillOpacity = ""; }); });
+  if (liveBoard && groups.length > 1) {
+    // every step gets its own small board on paper
+    const grid = document.createElement("div"); grid.className = "pfig-grid"; grid.id = "pfigs";
+    groups.forEach((g, i) => {
+      const box = document.createElement("div"); box.className = "pfig";
+      const sv = document.createElementNS(NS, "svg"); sv.setAttribute("viewBox", "0 0 800 500");
+      const c = g.cloneNode(true); c.style.display = ""; settle(c); sv.appendChild(c); box.appendChild(sv);
+      const cap = document.createElement("div"); cap.textContent = `${t().step} ${i + 1}: ${g.dataset.caption || ""}`; box.appendChild(cap);
+      grid.appendChild(box);
+    });
+    document.querySelector(".board").after(grid); document.body.classList.add("pfigs");
+    const keep = shown; shown = groups.length; legendAll = true; renderLegend(); legendAll = false; shown = keep;   // all symbols on paper
+    $("legend").classList.toggle("hide", !$("legend").children.length);
+  } else groups.forEach(g => { g.style.display = ""; settle(g); });
 });
-window.addEventListener("afterprint", () => { groups.forEach((g, i) => { g.style.display = i < shown ? "" : "none"; }); });
+window.addEventListener("afterprint", () => {
+  const grid = $("pfigs"); if (grid) { grid.remove(); document.body.classList.remove("pfigs"); renderLegend(); return; }
+  groups.forEach((g, i) => { g.style.display = i < shown ? "" : "none"; });
+});
 
 /* ---------- smart board: safe SVG + live drawing ---------- */
 const OK_TAGS = new Set(["g","path","line","circle","ellipse","rect","polyline","polygon","text","tspan"]);
@@ -779,9 +801,42 @@ function drawGroup(g){
     });
   });
 }
+// Keeps words readable: a white outline so they show over drawings, and words that overlap get nudged apart.
+function tidyText(g){
+  if (!g || g._tidy) return; g._tidy = true;
+  const texts = [...g.querySelectorAll("text")];
+  texts.forEach(el => { el.style.paintOrder = "stroke"; el.style.stroke = "#ffffff"; el.style.strokeWidth = "7px"; el.style.strokeLinejoin = "round"; });
+  const placed = [], pad = 4;
+  const hit = (a, b) => a.x < b.x + b.width + pad && b.x < a.x + a.width + pad && a.y < b.y + b.height + pad && b.y < a.y + a.height + pad;
+  const move = (el, dx, dy) => {
+    const kids = el.querySelectorAll("tspan[x],tspan[y]");
+    [el, ...kids].forEach(n => {
+      if (dx && n.hasAttribute("x")) n.setAttribute("x", (parseFloat(n.getAttribute("x")) || 0) + dx);
+      if (dy && n.hasAttribute("y")) n.setAttribute("y", (parseFloat(n.getAttribute("y")) || 0) + dy);
+    });
+  };
+  texts.forEach(el => {
+    let b; try { b = el.getBBox(); } catch(e) { return; }
+    if (!b.width) return;
+    if (b.x < 8) { move(el, 8 - b.x, 0); }
+    else if (b.x + b.width > 792) { move(el, 792 - b.x - b.width, 0); }
+    b = el.getBBox();
+    if (b.y + b.height > 494) move(el, 0, 494 - b.y - b.height);   // pull words back onto the board
+    else if (b.y < 6) move(el, 0, 6 - b.y);
+    for (let n = 0; n < 8; n++) {
+      b = el.getBBox();
+      const o = placed.find(p => hit(b, p)); if (!o) break;
+      let dy = o.y + o.height + pad + 2 - b.y;             // try just below the word it bumps into
+      if (b.y + dy + b.height > 496) dy = o.y - pad - 2 - b.height - b.y;   // no room below: go above
+      move(el, 0, dy);
+    }
+    try { placed.push(el.getBBox()); } catch(e) {}
+  });
+}
 function revealNext(){
   if (shown >= groups.length) return;
-  drawGroup(groups[shown]);
+  if (liveBoard) groups.forEach((g, i) => { if (i !== shown) g.style.display = "none"; });   // wipe the board
+  drawGroup(groups[shown]); tidyText(groups[shown]);
   $("caption").textContent = (groups.length > 1 || liveBoard ? `${t().step} ${shown + 1}: ` : "") + (groups[shown].dataset.caption || "");
   shown++; updateCtrls();
 }
@@ -789,10 +844,11 @@ function playSteps(){
   groups.forEach(g => g.style.display = "none"); shown = 0;
   const go = () => { if (shown < groups.length) { revealNext(); setTimeout(go, 1600); } }; go();
 }
+let legendAll = false;
 // "What these mean": every symbol on the steps drawn so far (tap one to hear it)
 function renderLegend(){
   const seen = new Map(), fx = new Map();
-  groups.slice(0, shown).forEach(g => {
+  (liveBoard && !legendAll ? groups.slice(Math.max(0, shown - 1), shown) : groups.slice(0, shown)).forEach(g => {
     (g._legend || []).forEach(l => { if (!seen.has(l.symbol)) seen.set(l.symbol, l.meaning); });
     (g._formulas || []).forEach(f => { if (!fx.has(f.formula)) fx.set(f.formula, f.explanation); });
   });
@@ -826,6 +882,7 @@ $("next").onclick = () => { manual = true; revealNext(); };
 $("prev").onclick = () => {
   manual = true; if (shown <= 1) return;
   shown--; groups[shown].style.display = "none";
+  if (liveBoard) { drawGroup(groups[shown - 1]); tidyText(groups[shown - 1]); }
   $("caption").textContent = (groups.length > 1 ? `${t().step} ${shown}: ` : "") + (groups[shown - 1].dataset.caption || "");
   updateCtrls();
 };
