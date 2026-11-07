@@ -124,21 +124,61 @@ button{font-family:inherit;cursor:pointer}
   .opts{grid-template-columns:1fr}
   .levels button{padding:8px 12px;font-size:14px}
 }
+.small-btn{border:0;background:#efe6d6;border-radius:999px;padding:10px 14px;font-weight:800;font-size:15px;color:var(--ink)}
+.small-btn:hover{background:#e6dac4}
+.small-btn.on{background:var(--ink);color:#fff}
+.lang button{padding:10px 12px;font-size:15px}
+.thumbs{display:flex;align-items:center;gap:6px;margin-left:auto;font-weight:800;font-size:14px;color:var(--soft)}
+.thumbs button{border:0;background:#f3efe6;border-radius:10px;padding:8px 10px;font-size:18px}
+.thumbs button:hover{background:#e9e2d2}
+.print-only{display:none}
+
+/* Classroom mode: big board for a whole class */
+body.present .wrap{max-width:none;padding:12px 24px}
+body.present .starters,body.present .notice{display:none}
+body.present .room{grid-template-columns:2.4fr 1fr}
+body.present .read p{font-size:clamp(22px,1.8vw,30px)}
+body.present .panel h2{font-size:clamp(26px,2.4vw,36px)}
+body.present .caption{font-size:clamp(22px,2vw,30px)}
+@media (max-width:900px){ body.present .room{grid-template-columns:1fr} }
+
+/* Printable recap */
+@media print{
+  @page{margin:14mm}
+  body{background:#fff}
+  .ask,.starters,.ctrls,.playrow,.deeper,.notice,.top-right,.thinking,.feedback,#vocabSpacer{display:none !important}
+  .wrap{max-width:none;padding:0}
+  .room{grid-template-columns:1fr}
+  .board-wrap{box-shadow:none;background:#fff;border:3px solid #33475b;padding:8px}
+  .tray{color:#24292f}
+  .panel,.card{box-shadow:none;border:1px solid #ddd;break-inside:avoid}
+  .extras{grid-template-columns:1fr 1fr}
+  .read .w{color:#24292f !important;background:none !important}
+  .opt{min-height:auto;padding:8px}
+  .print-only{display:block !important}
+}
 </style>
+<script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
+<script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
 <div class="wrap">
 
   <div class="top">
-    <div class="brand">Mr. Paul's <span>Classroom</span></div>
+    <div class="brand" id="brand">Mr. Paul's <span>Classroom</span></div>
     <div class="top-right">
+      <button class="small-btn" id="present">🖥️ Classroom</button>
+      <div class="levels lang" role="group" aria-label="Language">
+        <button id="lnEn" class="on">EN</button>
+        <button id="lnEs">ES</button>
+      </div>
       <div class="levels voices" role="group" aria-label="Choose a voice">
         <button id="vMan" class="on">🔊 Man</button>
         <button id="vWoman">🔊 Woman</button>
       </div>
       <div class="levels" role="group" aria-label="Choose your grade">
-        <button id="lvLittle" class="on">Grades K–2<small>Little Learners</small></button>
-        <button id="lvBig">Grades 3–6<small>Big Learners</small></button>
+        <button id="lvLittle" class="on"></button>
+        <button id="lvBig"></button>
       </div>
     </div>
   </div>
@@ -146,10 +186,10 @@ button{font-family:inherit;cursor:pointer}
   <div class="ask">
     <button class="mic" id="mic" aria-label="Talk to Mr. Paul">🎤</button>
     <div class="field">
-      <input id="q" maxlength="200" placeholder="Tap the mic and ask, or type here…" autocomplete="off">
-      <div class="hint" id="hint">Tap the red mic and ask Mr. Paul anything you want to learn!</div>
+      <input id="q" maxlength="200" autocomplete="off">
+      <div class="hint" id="hint"></div>
     </div>
-    <button class="go" id="go">Ask</button>
+    <button class="go" id="go"></button>
   </div>
   <div class="starters" id="starters"></div>
 
@@ -157,10 +197,10 @@ button{font-family:inherit;cursor:pointer}
     <div class="board-wrap">
       <div class="board">
         <svg id="svg" viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" aria-label="Mr. Paul's smart board"></svg>
-        <div class="thinking" id="thinking"><div>Thinking...</div><div class="dots"><span></span><span></span><span></span></div></div>
+        <div class="thinking" id="thinking"><div id="thinkText"></div><div class="dots"><span></span><span></span><span></span></div></div>
       </div>
       <div class="tray">
-        <div class="caption" id="caption">Ask a question to start!</div>
+        <div class="caption" id="caption"></div>
         <div class="ctrls">
           <button id="prev" aria-label="Back one step" disabled>◀</button>
           <button id="next" aria-label="Next step" disabled>▶</button>
@@ -170,11 +210,13 @@ button{font-family:inherit;cursor:pointer}
     </div>
 
     <div class="panel">
-      <h2 id="title">Hi, I'm Mr. Paul! 👋</h2>
-      <div class="read" id="read"><p>Ask me a question with your voice or by typing. I'll explain it, draw it on my smart board, and then we'll do a quick quiz together!</p></div>
+      <h2 id="title"></h2>
+      <div class="read" id="read"></div>
       <div class="playrow hide" id="playrow">
-        <button class="btn" id="again">🔊 Hear it again</button>
-        <button class="btn hide" id="stop">⏹ Stop</button>
+        <button class="btn" id="again"></button>
+        <button class="btn hide" id="stop"></button>
+        <button class="btn" id="print"></button>
+        <div class="thumbs" id="thumbs"><span id="helpful"></span><button id="up" aria-label="Yes">👍</button><button id="down" aria-label="No">👎</button></div>
       </div>
       <div class="vocab hide" id="vocab"></div>
     </div>
@@ -182,104 +224,203 @@ button{font-family:inherit;cursor:pointer}
 
   <div class="extras hide" id="extras">
     <div class="card img-card hide" id="imgCard">
-      <h3>📷 What it looks like</h3>
+      <h3 id="hImg"></h3>
       <img id="img" alt="">
       <p class="credit" id="credit"></p>
     </div>
-    <div class="card wow hide" id="wowCard"><h3>⭐ Surprise Fact!</h3><p id="wow"></p></div>
-    <div class="card tryit hide" id="tryCard"><h3>🧪 Try It at Home</h3><p id="try"></p></div>
+    <div class="card wow hide" id="wowCard"><h3 id="hWow"></h3><p id="wow"></p></div>
+    <div class="card tryit hide" id="tryCard"><h3 id="hTry"></h3><p id="try"></p></div>
   </div>
 
   <div class="card quiz hide" id="quizCard">
-    <h3>✏️ Quick Check</h3>
+    <h3 id="hQuiz"></h3>
     <div class="q" id="quizQ"></div>
     <div class="opts" id="opts"></div>
     <div class="feedback" id="fb"></div>
+    <p class="print-only" id="answerKey" style="font-size:13px;color:#57606a;margin-top:10px"></p>
   </div>
 
   <div class="card deeper hide" id="deepCard">
-    <h3>🔍 Keep learning!</h3>
+    <h3 id="hDeep"></h3>
     <div class="big-btns">
-      <button class="bigbtn ask-about" id="askAbout">🎤 Ask about this</button>
-      <button class="bigbtn more" id="tellMore">➕ Tell me more</button>
+      <button class="bigbtn ask-about" id="askAbout"></button>
+      <button class="bigbtn more" id="tellMore"></button>
     </div>
-    <div class="sub">Or try one of these:</div>
+    <div class="sub" id="orTry"></div>
     <div class="row" id="deeper"></div>
   </div>
 
-  <p class="notice">🖼️ Every picture here is public domain or free to share, from sources like Wikimedia Commons, NASA, and the Smithsonian. Mr. Paul never saves your voice. Your words are turned into text right away, and nothing is recorded. Please don't share your name, school, or address.</p>
+  <p class="notice" id="notice"></p>
 </div>
 
 <script>
 (() => {
 const $ = id => document.getElementById(id);
 const NS = "http://www.w3.org/2000/svg";
-const STARTERS = {
-  little: ["Why is the sky blue?","How do bees make honey?","Why do cats purr?","What makes a rainbow?","How do fish breathe underwater?","Why does the moon change shape?","Where does rain come from?","Why do leaves change color?"],
-  big: ["How do volcanoes erupt?","How does a plane stay in the air?","What is a fraction?","Why do we have seasons?","How do magnets work?","How does the heart pump blood?","What is gravity?","How do you find the area of a rectangle?"]
+
+/* ---------- words on the page, in English and Spanish ---------- */
+const T = {
+  en: {
+    brand: "Mr. Paul's <span>Classroom</span>", little: "Grades K–2<small>Little Learners</small>", big: "Grades 3–6<small>Big Learners</small>",
+    man: "🔊 Man", woman: "🔊 Woman", present: "🖥️ Classroom", presentOff: "✖ Exit classroom",
+    placeholder: "Tap the mic and ask, or type here…", hint: "Tap the red mic and ask Mr. Paul anything you want to learn!",
+    noMic: "Type your question for Mr. Paul! (Talking works in Chrome, Edge, and Safari.)", listening: "I'm listening… ask your question!",
+    heard: "Is that right? Tap Ask! (Or tap the mic to try again.)", nothing: "I didn't hear anything. Tap the mic and try again!",
+    micBlocked: "Ask a grown-up to allow the microphone, or type your question.", ask: "Ask", tryLabel: "Try:",
+    thinking: "Thinking...", drawing: "Drawing...", markers: "Mr. Paul is getting his markers ready…", fresh: "Mr. Paul is grabbing a fresh marker…",
+    another: "Ask another question anytime!", tapAgain: "Tap Ask to try again.", watch: "Watch the board!", start: "Ask a question to start!",
+    step: "Step", welcomeTitle: "Hi, I'm Mr. Paul! 👋",
+    welcomeText: "Ask me a question with your voice or by typing. I'll explain it, draw it on my smart board, and then we'll do a quick quiz together!",
+    again: "🔊 Hear it again", stop: "⏹ Stop", print: "🖨️ Print", helpful: "Helpful?", thanks: "Thanks! 💛",
+    hImg: "📷 What it looks like", hWow: "⭐ Surprise Fact!", hTry: "🧪 Try It at Home", hQuiz: "✏️ Quick Check",
+    gotIt: "🎉 You got it! ", goodTry: "Good try! Pick another one.", answerKey: "Answer: ",
+    hDeep: "🔍 Keep learning!", askAbout: "🎤 Ask about this", tellMore: "➕ Tell me more", orTry: "Or try one of these:",
+    askAboutHint: t => "What do you want to know about " + t + "? Ask away!", moreQ: t => "Tell me more about " + t,
+    oops: "Oops! My marker ran out.", oopsText: "Something went wrong. Please try your question again.", code: "Code: ",
+    hello: "Hi! I'll read your answers.", helpCap: "You matter. 💛", otherCap: "Ask me another question!",
+    notice: "🖼️ Every picture here is public domain or free to share, from sources like Wikimedia Commons, NASA, and the Smithsonian. Mr. Paul never saves your voice. Your words are turned into text right away, and nothing is recorded. Please don't share your name, school, or address.",
+    wb1: "Welcome to", wb2: "Mr. Paul's Classroom!", wb3: "Ask anything!", wbc1: "Welcome!", wbc2: "I love questions!", wbc3: "Ask anything!",
+    q1: "What do you want to learn?", tellAdult: "Tell a grown-up you trust",
+    starters: {
+      little: ["Why is the sky blue?","How do bees make honey?","Why do cats purr?","What makes a rainbow?","How do fish breathe underwater?","Why does the moon change shape?","Where does rain come from?","Why do leaves change color?"],
+      big: ["How do volcanoes erupt?","How does a plane stay in the air?","What is a fraction?","Why do we have seasons?","How do magnets work?","How does the heart pump blood?","What is gravity?","How do you find the area of a rectangle?"]
+    }
+  },
+  es: {
+    brand: "La Clase de <span>Mr. Paul</span>", little: "Grados K–2<small>Pequeños</small>", big: "Grados 3–6<small>Grandes</small>",
+    man: "🔊 Hombre", woman: "🔊 Mujer", present: "🖥️ Modo clase", presentOff: "✖ Salir",
+    placeholder: "Toca el micrófono y pregunta, o escribe aquí…", hint: "¡Toca el micrófono rojo y pregúntale a Mr. Paul lo que quieras aprender!",
+    noMic: "¡Escribe tu pregunta! (Hablar funciona en Chrome, Edge y Safari.)", listening: "Te escucho… ¡haz tu pregunta!",
+    heard: "¿Está bien? ¡Toca Preguntar! (O toca el micrófono otra vez.)", nothing: "No escuché nada. ¡Toca el micrófono e intenta otra vez!",
+    micBlocked: "Pídele a un adulto que permita el micrófono, o escribe tu pregunta.", ask: "Preguntar", tryLabel: "Prueba:",
+    thinking: "Pensando...", drawing: "Dibujando...", markers: "Mr. Paul está preparando sus marcadores…", fresh: "Mr. Paul busca otro marcador…",
+    another: "¡Haz otra pregunta cuando quieras!", tapAgain: "Toca Preguntar para intentar otra vez.", watch: "¡Mira la pizarra!", start: "¡Haz una pregunta para empezar!",
+    step: "Paso", welcomeTitle: "¡Hola, soy Mr. Paul! 👋",
+    welcomeText: "Hazme una pregunta con tu voz o escribiendo. Te la explico, la dibujo en mi pizarra, ¡y luego hacemos un juego de preguntas!",
+    again: "🔊 Escuchar otra vez", stop: "⏹ Parar", print: "🖨️ Imprimir", helpful: "¿Te ayudó?", thanks: "¡Gracias! 💛",
+    hImg: "📷 Así se ve", hWow: "⭐ ¡Dato sorpresa!", hTry: "🧪 Pruébalo en casa", hQuiz: "✏️ Repaso rápido",
+    gotIt: "🎉 ¡Muy bien! ", goodTry: "¡Buen intento! Elige otra.", answerKey: "Respuesta: ",
+    hDeep: "🔍 ¡Sigue aprendiendo!", askAbout: "🎤 Pregunta sobre esto", tellMore: "➕ Cuéntame más", orTry: "O prueba una de estas:",
+    askAboutHint: t => "¿Qué quieres saber sobre " + t + "? ¡Pregunta!", moreQ: t => "Cuéntame más sobre " + t,
+    oops: "¡Ay! Se acabó mi marcador.", oopsText: "Algo salió mal. Por favor, haz tu pregunta otra vez.", code: "Código: ",
+    hello: "¡Hola! Yo leeré tus respuestas.", helpCap: "Tú importas. 💛", otherCap: "¡Hazme otra pregunta!",
+    notice: "🖼️ Todas las fotos son de dominio público o libres para compartir, de fuentes como Wikimedia Commons, la NASA y el Smithsonian. Mr. Paul nunca guarda tu voz. Tus palabras se convierten en texto al instante y nada se graba. Por favor, no compartas tu nombre, escuela ni dirección.",
+    wb1: "Bienvenidos a", wb2: "¡La Clase de Mr. Paul!", wb3: "¡Pregunta lo que quieras!", wbc1: "¡Bienvenidos!", wbc2: "¡Me encantan las preguntas!", wbc3: "¡Pregunta lo que quieras!",
+    q1: "¿Qué quieres aprender?", tellAdult: "Díselo a un adulto de confianza",
+    starters: {
+      little: ["¿Por qué el cielo es azul?","¿Cómo hacen miel las abejas?","¿Por qué ronronean los gatos?","¿Cómo se forma un arcoíris?","¿Cómo respiran los peces?","¿Por qué cambia la luna de forma?","¿De dónde viene la lluvia?","¿Por qué cambian de color las hojas?"],
+      big: ["¿Cómo hacen erupción los volcanes?","¿Cómo vuela un avión?","¿Qué es una fracción?","¿Por qué hay estaciones?","¿Cómo funcionan los imanes?","¿Cómo bombea sangre el corazón?","¿Qué es la gravedad?","¿Cómo se calcula el área de un rectángulo?"]
+    }
+  }
 };
 
-let level = "little", lesson = null, busy = false;
-let groups = [], shown = 0, manual = false;
+let level = "little", lang = "en", lesson = null, busy = false, followUp = "", reqId = 0;
+let groups = [], shown = 0, manual = false, lastProgress = 0;
 let words = [], speech = "";
 let ctx = null, srcNode = null, lastAudio = null, raf = 0, voiceOff = false, speaking = false;
+const t = () => T[lang];
+function track(name, data){ try { window.va("event", { name, data }); } catch(e) {} }
 
-/* ---------- level + starters ---------- */
+/* ---------- language, level, labels ---------- */
+function applyText(){
+  const L = t();
+  document.documentElement.lang = lang;
+  $("brand").innerHTML = L.brand; $("lvLittle").innerHTML = L.little; $("lvBig").innerHTML = L.big;
+  $("vMan").textContent = L.man; $("vWoman").textContent = L.woman;
+  $("present").textContent = document.body.classList.contains("present") ? L.presentOff : L.present;
+  $("q").placeholder = L.placeholder; $("go").textContent = L.ask;
+  if (!busy) $("hint").textContent = SR ? L.hint : L.noMic;
+  $("again").textContent = L.again; $("stop").textContent = L.stop; $("print").textContent = L.print; $("helpful").textContent = L.helpful;
+  $("hImg").textContent = L.hImg; $("hWow").textContent = L.hWow; $("hTry").textContent = L.hTry; $("hQuiz").textContent = L.hQuiz;
+  $("hDeep").textContent = L.hDeep; $("askAbout").textContent = L.askAbout; $("tellMore").textContent = L.tellMore; $("orTry").textContent = L.orTry;
+  $("notice").textContent = L.notice; $("thinkText").textContent = L.thinking;
+  $("lnEn").classList.toggle("on", lang === "en"); $("lnEs").classList.toggle("on", lang === "es");
+  if (rec) rec.lang = lang === "es" ? "es-US" : "en-US";
+  renderStarters();
+}
+function setLang(l){
+  lang = l; try { localStorage.setItem("mpc_lang", l); } catch(e) {}
+  applyText();
+  if (!lesson) { $("title").textContent = t().welcomeTitle; $("read").innerHTML = "<p></p>"; $("read").firstChild.textContent = t().welcomeText; welcome(); }
+}
 function setLevel(l){
   level = l;
-  $("lvLittle").classList.toggle("on", l === "little");
-  $("lvBig").classList.toggle("on", l === "big");
+  $("lvLittle").classList.toggle("on", l === "little"); $("lvBig").classList.toggle("on", l === "big");
   renderStarters();
 }
 function renderStarters(){
-  const pool = [...STARTERS[level]].sort(() => Math.random() - .5).slice(0, 3);
-  $("starters").innerHTML = "";
+  const pool = [...t().starters[level]].sort(() => Math.random() - .5).slice(0, 3);
+  const box = $("starters"); box.innerHTML = "";
   const lab = document.createElement("span");
-  lab.textContent = "Try:"; lab.style.cssText = "font-weight:900;color:#57606a;align-self:center";
-  $("starters").appendChild(lab);
-  pool.forEach(t => { const b = document.createElement("button"); b.className = "chip"; b.textContent = t; b.onclick = () => { $("q").value = t; ask(); }; $("starters").appendChild(b); });
+  lab.textContent = t().tryLabel; lab.style.cssText = "font-weight:900;color:#57606a;align-self:center";
+  box.appendChild(lab);
+  pool.forEach(q => { const b = document.createElement("button"); b.className = "chip"; b.textContent = q; b.onclick = () => { unlock(); $("q").value = q; ask(); }; box.appendChild(b); });
 }
 $("lvLittle").onclick = () => setLevel("little");
 $("lvBig").onclick = () => setLevel("big");
+$("lnEn").onclick = () => setLang("en");
+$("lnEs").onclick = () => setLang("es");
+
+/* ---------- classroom mode ---------- */
+function setPresent(on){
+  document.body.classList.toggle("present", on);
+  $("present").textContent = on ? t().presentOff : t().present;
+  $("present").classList.toggle("on", on);
+}
+$("present").onclick = () => {
+  const on = !document.body.classList.contains("present");
+  setPresent(on);
+  try {
+    if (on && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
+    if (!on && document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  } catch(e) {}
+  if (on) track("classroom_mode", { lang });
+};
+document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement && document.body.classList.contains("present")) setPresent(false); });
 
 /* ---------- audio unlock (must happen on a tap) ---------- */
 function unlock(){
-  try {
-    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
-    if (ctx.state === "suspended") ctx.resume();
-  } catch(e) {}
+  try { if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === "suspended") ctx.resume(); } catch(e) {}
   try { if ("speechSynthesis" in window) { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); } } catch(e) {}
 }
 
 /* ---------- microphone (browser speech-to-text, nothing recorded) ---------- */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let rec = null, listening = false;
+function startListening(){
+  if (!rec) { $("q").focus(); return; }
+  try { stopVoice(); rec.start(); listening = true; $("mic").classList.add("listening"); $("mic").textContent = "👂"; $("hint").textContent = t().listening; } catch(e) {}
+}
 if (!SR) {
   $("mic").classList.add("hide");
-  $("hint").textContent = "Type your question for Mr. Paul! (Talking works in Chrome, Edge, and Safari.)";
 } else {
-  rec = new SR(); rec.lang = "en-US"; rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
-  rec.onresult = e => { let t = ""; for (const r of e.results) t += r[0].transcript; $("q").value = t; };
+  rec = new SR(); rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
+  rec.onresult = e => { let s = ""; for (const r of e.results) s += r[0].transcript; $("q").value = s; };
   rec.onend = () => {
     listening = false; $("mic").classList.remove("listening"); $("mic").textContent = "🎤";
-    if ($("q").value.trim()) { $("hint").textContent = "Is that right? Tap Ask! (Or tap the mic to try again.)"; $("go").classList.add("ready"); }
-    else $("hint").textContent = "I didn't hear anything. Tap the mic and try again!";
+    if ($("q").value.trim()) { $("hint").textContent = t().heard; $("go").classList.add("ready"); }
+    else $("hint").textContent = t().nothing;
   };
-  rec.onerror = e => {
-    if (e.error === "not-allowed" || e.error === "service-not-allowed") $("hint").textContent = "Ask a grown-up to allow the microphone, or type your question.";
-  };
-  $("mic").onclick = () => {
-    unlock(); stopVoice();
-    if (listening) { rec.stop(); return; }
-    $("q").value = ""; $("go").classList.remove("ready");
-    try { rec.start(); listening = true; $("mic").classList.add("listening"); $("mic").textContent = "👂"; $("hint").textContent = "I'm listening… ask your question!"; } catch(e) {}
-  };
+  rec.onerror = e => { if (e.error === "not-allowed" || e.error === "service-not-allowed") $("hint").textContent = t().micBlocked; };
+  $("mic").onclick = () => { unlock(); if (listening) { rec.stop(); return; } $("q").value = ""; $("go").classList.remove("ready"); startListening(); };
 }
 $("go").onclick = () => { unlock(); ask(); };
 $("q").addEventListener("keydown", e => { if (e.key === "Enter") { unlock(); ask(); } });
 
-/* ---------- ask ---------- */
-let followUp = "";
+/* ---------- asking: words and drawing are fetched at the same time ---------- */
+const norm = s => s.toLowerCase().replace(/[?!.¿¡,]+/g, " ").replace(/\s+/g, " ").trim();
+async function fetchPart(part, question, context, opts){
+  let r;
+  if (!context && !opts.more) {
+    const url = `/api/ask?part=${part}&level=${level}&lang=${lang}&q=${encodeURIComponent(norm(question))}`;
+    r = await fetch(url);
+  } else {
+    r = await fetch("/api/ask", { method:"POST", headers:{ "content-type":"application/json" },
+      body: JSON.stringify({ part, question, level, lang, context: context || "", more: !!opts.more, prev: opts.prev || "" }) });
+  }
+  const d = await r.json().catch(() => null);
+  return { ok: r.ok, status: r.status, d };
+}
 async function ask(text, context, opts){
   opts = opts || {};
   if (!context && followUp) context = followUp;
@@ -287,44 +428,69 @@ async function ask(text, context, opts){
   const question = (text || $("q").value).trim();
   if (!question || busy) return;
   if (text) $("q").value = text;
+  const my = ++reqId;
   busy = true; $("go").disabled = true; $("go").classList.remove("ready");
-  stopVoice(); $("thinking").classList.add("on");
-  $("hint").textContent = "Mr. Paul is getting his markers ready…";
+  stopVoice(); $("thinkText").textContent = t().thinking; $("thinking").classList.add("on");
+  $("hint").textContent = t().markers;
+
+  // the drawing starts right away, alongside the words
+  const boardP = (async () => {
+    for (let a = 0; a < 2; a++) {
+      try { const x = await fetchPart("board", question, context, opts); if (x.d && Array.isArray(x.d.steps)) return x.d.steps; } catch(e) {}
+    }
+    return null;
+  })();
+
   let data = null, reason = "N0";
   for (let attempt = 0; attempt < 2 && !data; attempt++) {
-    if (attempt === 1) $("hint").textContent = "Mr. Paul is grabbing a fresh marker…";
+    if (attempt === 1) $("hint").textContent = t().fresh;
     try {
-      const r = await fetch("/api/ask", { method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify({ question, level, context: context || "", more: !!opts.more, prev: opts.prev || "" }) });
-      const d = await r.json().catch(() => null);
-      if (d && Array.isArray(d.answer) && d.answer.length) data = d;
-      else reason = (d && d.reason) || ("H" + r.status);
+      const x = await fetchPart("lesson", question, context, opts);
+      if (x.d && Array.isArray(x.d.answer) && x.d.answer.length) data = x.d;
+      else reason = (x.d && x.d.reason) || ("H" + x.status);
     } catch(e) { reason = "N0"; }
   }
+  if (my !== reqId) return;
   try {
     if (!data) throw new Error(reason);
     lesson = data; render();
-    $("hint").textContent = "Ask another question anytime!";
+    $("hint").textContent = t().another;
+    track("lesson", { topic: String(data.title || "").slice(0, 80), level, lang, type: data.type });
   } catch(e) {
     lesson = null; stopVoice();
-    $("title").textContent = "Oops! My marker ran out.";
-    $("read").innerHTML = "<p>Something went wrong. Please try your question again.</p>";
+    $("title").textContent = t().oops;
+    $("read").innerHTML = "<p></p>"; $("read").firstChild.textContent = t().oopsText;
     const code = document.createElement("p"); code.style.cssText = "font-size:12px;color:#9aa3ad;margin:0";
-    code.textContent = "Code: " + (data ? "P8" : e.message); $("read").appendChild(code);
+    code.textContent = t().code + (data ? "P8" : e.message); $("read").appendChild(code);
     $("playrow").classList.add("hide"); $("vocab").classList.add("hide"); $("extras").classList.add("hide");
     ["quizCard","deepCard"].forEach(id => $(id).classList.add("hide"));
-    buildBoard([{ caption: "Try again!", svg: simpleCard("redirect") }]); revealNext();
-    $("hint").textContent = "Tap Ask to try again.";
-  } finally {
-    $("thinking").classList.remove("on"); busy = false; $("go").disabled = false;
+    $("thinking").classList.remove("on");
+    buildBoard([{ caption: t().tapAgain, svg: simpleCard("redirect") }]); revealNext();
+    $("hint").textContent = t().tapAgain;
+    busy = false; $("go").disabled = false;
+    return;
+  }
+  busy = false; $("go").disabled = false;
+
+  // words are showing; now wait for the drawing
+  if (data.type !== "lesson") { $("thinking").classList.remove("on"); return; }
+  $("thinkText").textContent = t().drawing;
+  const steps = await boardP;
+  if (my !== reqId) return;
+  $("thinking").classList.remove("on");
+  if (steps && steps.length) {
+    buildBoard(steps);
+    if (lastProgress >= 1 || !speaking) { manual = true; playSteps(); }
+    else onProgress(lastProgress);
+  } else {
+    buildBoard([{ caption: t().otherCap, svg: simpleCard("redirect") }]); revealNext();
   }
 }
 
 /* ---------- render a lesson ---------- */
 function render(){
-  const L = lesson, isLesson = L.type === "lesson";
-  $("title").textContent = L.title || "Let's learn!";
-
-  // read-along text
+  const L = lesson, isLesson = L.type === "lesson", S = t();
+  $("title").textContent = L.title || "";
   speech = (L.answer || []).join(" ");
   words = []; let offset = 0; const read = $("read"); read.innerHTML = "";
   (L.answer || []).forEach(p => {
@@ -337,19 +503,18 @@ function render(){
     read.appendChild(el); offset += p.length + 1;
   });
   $("playrow").classList.remove("hide");
+  $("thumbs").classList.toggle("hide", !isLesson);
+  $("helpful").textContent = S.helpful; $("up").disabled = false; $("down").disabled = false;
 
-  // vocab
   const vb = $("vocab"); vb.innerHTML = "";
   if (isLesson && L.vocab && L.vocab.length) {
     L.vocab.forEach(v => { if (!v.word) return; const d = document.createElement("div"); d.innerHTML = "<b></b> — <span></span>"; d.querySelector("b").textContent = v.word; d.querySelector("span").textContent = v.meaning; vb.appendChild(d); });
-    vb.classList.remove("hide");
+    vb.classList.toggle("hide", !vb.children.length);
   } else vb.classList.add("hide");
 
-  // board
-  if (isLesson && L.board && L.board.steps && L.board.steps.length) buildBoard(L.board.steps);
-  else buildBoard([{ caption: L.type === "help" ? "You matter. 💛" : "Ask me another question!", svg: simpleCard(L.type) }]);
+  if (isLesson) buildBoard([]);
+  else buildBoard([{ caption: L.type === "help" ? S.helpCap : S.otherCap, svg: simpleCard(L.type) }]);
 
-  // extras
   const ex = $("extras"); ex.classList.add("hide");
   ["imgCard","wowCard","tryCard","quizCard","deepCard"].forEach(id => $(id).classList.add("hide"));
   if (isLesson) {
@@ -357,30 +522,39 @@ function render(){
     if (L.try_it) { $("try").textContent = L.try_it; $("tryCard").classList.remove("hide"); ex.classList.remove("hide"); }
     if (L.image_query) loadImage(L.image_query);
     if (L.quiz && L.quiz.options && L.quiz.options.length) buildQuiz(L.quiz);
-    $("deeper").innerHTML = ""; document.querySelector(".deeper .sub").classList.toggle("hide", !(L.deeper && L.deeper.length));
-    if (L.deeper && L.deeper.length) {
-      const row = $("deeper"); row.innerHTML = "";
-      L.deeper.slice(0,3).forEach(t => { const b = document.createElement("button"); b.className = "chip"; b.textContent = t; b.onclick = () => { unlock(); ask(t, L.title); window.scrollTo({ top: 0, behavior: "smooth" }); }; row.appendChild(b); });
-      $("deepCard").classList.remove("hide");
-    }
-    if (isLesson) {
-      $("deepCard").classList.remove("hide");
-      $("tellMore").onclick = () => { unlock(); ask("Tell me more about " + L.title, L.title, { more: true, prev: (L.answer || []).join(" ") }); window.scrollTo({ top: 0, behavior: "smooth" }); };
-      $("askAbout").onclick = () => {
-        unlock(); followUp = L.title; $("q").value = ""; window.scrollTo({ top: 0, behavior: "smooth" });
-        $("hint").textContent = "What do you want to know about " + L.title + "? Ask away!";
-        if (rec && !listening) { try { stopVoice(); rec.start(); listening = true; $("mic").classList.add("listening"); $("mic").textContent = "👂"; } catch(e) {} }
-        else $("q").focus();
-      };
-    }
+    const row = $("deeper"); row.innerHTML = "";
+    (L.deeper || []).slice(0, 3).forEach(q => { const b = document.createElement("button"); b.className = "chip"; b.textContent = q; b.onclick = () => { unlock(); ask(q, L.title); window.scrollTo({ top: 0, behavior: "smooth" }); }; row.appendChild(b); });
+    $("orTry").classList.toggle("hide", !row.children.length);
+    $("tellMore").onclick = () => { unlock(); ask(S.moreQ(L.title), L.title, { more: true, prev: speech }); window.scrollTo({ top: 0, behavior: "smooth" }); };
+    $("askAbout").onclick = () => { unlock(); followUp = L.title; $("q").value = ""; window.scrollTo({ top: 0, behavior: "smooth" }); $("hint").textContent = S.askAboutHint(L.title); startListening(); };
+    $("deepCard").classList.remove("hide");
   }
+  if (!isLesson) { buildBoard([{ caption: L.type === "help" ? S.helpCap : S.otherCap, svg: simpleCard(L.type) }]); revealNext(); }
   speak();
 }
 
 function simpleCard(type){
-  if (type === "help") return "<path d='M400 400 C 250 300, 230 170, 320 150 C 360 140, 390 170, 400 195 C 410 170, 440 140, 480 150 C 570 170, 550 300, 400 400 Z' fill='#ffb3a7' stroke='#e5534b' stroke-width='6'/><text x='400' y='460' text-anchor='middle' font-family='Patrick Hand' font-size='36' fill='#24292f'>Tell a grown-up you trust</text>";
-  return "<circle cx='400' cy='210' r='110' fill='#fff7d6' stroke='#f0a020' stroke-width='6'/><text x='400' y='250' text-anchor='middle' font-family='Patrick Hand' font-size='120' fill='#f0a020'>?</text><text x='400' y='420' text-anchor='middle' font-family='Patrick Hand' font-size='38' fill='#24292f'>What do you want to learn?</text>";
+  const S = t();
+  if (type === "help") return "<path d='M400 400 C 250 300, 230 170, 320 150 C 360 140, 390 170, 400 195 C 410 170, 440 140, 480 150 C 570 170, 550 300, 400 400 Z' fill='#ffb3a7' stroke='#e5534b' stroke-width='6'/><text x='400' y='460' text-anchor='middle' font-family='Patrick Hand' font-size='36' fill='#24292f'>" + esc(S.tellAdult) + "</text>";
+  return "<circle cx='400' cy='210' r='110' fill='#fff7d6' stroke='#f0a020' stroke-width='6'/><text x='400' y='250' text-anchor='middle' font-family='Patrick Hand' font-size='120' fill='#f0a020'>?</text><text x='400' y='420' text-anchor='middle' font-family='Patrick Hand' font-size='38' fill='#24292f'>" + esc(S.q1) + "</text>";
 }
+function esc(s){ return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/'/g, "&#39;"); }
+
+/* ---------- feedback ---------- */
+function vote(v){
+  if (!lesson) return;
+  track("feedback", { vote: v, topic: String(lesson.title || "").slice(0, 80), level, lang });
+  $("helpful").textContent = t().thanks; $("up").disabled = true; $("down").disabled = true;
+}
+$("up").onclick = () => vote("up");
+$("down").onclick = () => vote("down");
+
+/* ---------- printable recap ---------- */
+$("print").onclick = () => { track("print", { lang }); window.print(); };
+window.addEventListener("beforeprint", () => {
+  groups.forEach(g => { g.style.display = ""; g.querySelectorAll("*").forEach(el => { el.style.transition = "none"; el.style.strokeDashoffset = 0; el.style.opacity = 1; el.style.fillOpacity = ""; }); });
+});
+window.addEventListener("afterprint", () => { groups.forEach((g, i) => { g.style.display = i < shown ? "" : "none"; }); });
 
 /* ---------- smart board: safe SVG + live drawing ---------- */
 const OK_TAGS = new Set(["g","path","line","circle","ellipse","rect","polyline","polygon","text","tspan"]);
@@ -404,7 +578,6 @@ function sanitize(markup){
   copy(doc.documentElement, out);
   return out;
 }
-
 function buildBoard(steps){
   const svg = $("svg"); svg.innerHTML = ""; groups = []; shown = 0; manual = false;
   steps.forEach(s => {
@@ -412,15 +585,13 @@ function buildBoard(steps){
     g.style.display = "none"; g.dataset.caption = s.caption || "";
     svg.appendChild(g); groups.push(g);
   });
-  svg.querySelectorAll("text").forEach(t => t.addEventListener("click", () => { if (!speaking) sayShort(t.textContent); }));
-  $("caption").textContent = groups.length > 1 ? "Watch the board!" : (steps[0].caption || "");
+  svg.querySelectorAll("text").forEach(el => el.addEventListener("click", () => { if (!speaking) sayShort(el.textContent); }));
+  $("caption").textContent = groups.length > 1 ? t().watch : (steps[0] ? steps[0].caption || "" : "");
   updateCtrls();
 }
-
 function drawGroup(g){
   g.style.display = "";
-  const els = g.querySelectorAll("path,line,circle,ellipse,rect,polyline,polygon,text");
-  els.forEach((el, i) => {
+  g.querySelectorAll("path,line,circle,ellipse,rect,polyline,polygon,text").forEach((el, i) => {
     const delay = i * 0.12;
     if (el.tagName === "text" || el.tagName === "tspan") {
       el.style.transition = "none"; el.style.opacity = 0;
@@ -428,54 +599,54 @@ function drawGroup(g){
       return;
     }
     let len = 0; try { len = el.getTotalLength(); } catch(e) {}
-    const fill = el.getAttribute("fill");
-    const hasFill = fill && fill !== "none" && fill !== "transparent";
+    const fill = el.getAttribute("fill"); const hasFill = fill && fill !== "none" && fill !== "transparent";
+    const fo = el.getAttribute("fill-opacity") || "1";
     el.style.transition = "none";
     if (len > 0 && el.getAttribute("stroke")) { el.style.strokeDasharray = len; el.style.strokeDashoffset = len; }
     if (hasFill) el.style.fillOpacity = 0;
     el.getBoundingClientRect();
     requestAnimationFrame(() => {
       el.style.transition = `stroke-dashoffset 1.1s ease ${delay}s, fill-opacity .6s ease ${delay + .8}s`;
-      el.style.strokeDashoffset = 0;
-      if (hasFill) el.style.fillOpacity = 1;
+      el.style.strokeDashoffset = 0; if (hasFill) el.style.fillOpacity = fo;
     });
   });
 }
 function revealNext(){
   if (shown >= groups.length) return;
   drawGroup(groups[shown]);
-  $("caption").textContent = (groups.length > 1 ? `Step ${shown + 1}: ` : "") + (groups[shown].dataset.caption || "");
+  $("caption").textContent = (groups.length > 1 ? `${t().step} ${shown + 1}: ` : "") + (groups[shown].dataset.caption || "");
   shown++; updateCtrls();
 }
+function playSteps(){
+  groups.forEach(g => g.style.display = "none"); shown = 0;
+  const go = () => { if (shown < groups.length) { revealNext(); setTimeout(go, 1600); } }; go();
+}
 function updateCtrls(){
-  $("prev").disabled = shown <= 1;
-  $("next").disabled = shown >= groups.length;
-  $("replay").disabled = groups.length === 0;
+  $("prev").disabled = shown <= 1; $("next").disabled = shown >= groups.length; $("replay").disabled = groups.length === 0;
 }
 $("next").onclick = () => { manual = true; revealNext(); };
 $("prev").onclick = () => {
   manual = true; if (shown <= 1) return;
   shown--; groups[shown].style.display = "none";
-  $("caption").textContent = (groups.length > 1 ? `Step ${shown}: ` : "") + (groups[shown - 1].dataset.caption || "");
+  $("caption").textContent = (groups.length > 1 ? `${t().step} ${shown}: ` : "") + (groups[shown - 1].dataset.caption || "");
   updateCtrls();
 };
-$("replay").onclick = () => {
-  manual = true; groups.forEach(g => g.style.display = "none"); shown = 0;
-  let i = 0; const go = () => { if (i < groups.length) { revealNext(); i++; setTimeout(go, 1600); } }; go();
-};
-function onProgress(f){ if (manual) return; while (shown < groups.length && f >= shown / groups.length) revealNext(); }
+$("replay").onclick = () => { manual = true; playSteps(); };
+function onProgress(f){
+  lastProgress = Math.max(lastProgress, f);
+  if (manual) return;
+  while (shown < groups.length && f >= shown / groups.length) revealNext();
+}
 
-/* ---------- Mr. Paul's voice + read-along ---------- */
-function highlight(charIndex){
+/* ---------- voice + read-along ---------- */
+function highlight(ci){
   let k = -1;
-  for (let i = 0; i < words.length; i++) { if (words[i].start <= charIndex) k = i; else break; }
+  for (let i = 0; i < words.length; i++) { if (words[i].start <= ci) k = i; else break; }
   words.forEach((w, i) => { w.el.classList.toggle("on", i === k); w.el.classList.toggle("done", i < k); });
 }
 function clearHighlight(){ words.forEach(w => w.el.classList.remove("on","done")); $("read").classList.remove("speaking"); }
-function setSpeaking(on){
-  speaking = on; $("read").classList.toggle("speaking", on);
-  $("stop").classList.toggle("hide", !on); $("again").classList.toggle("hide", on);
-}
+function setSpeaking(on){ speaking = on; $("read").classList.toggle("speaking", on); $("stop").classList.toggle("hide", !on); $("again").classList.toggle("hide", on); }
+function finish(){ setSpeaking(false); words.forEach(w => { w.el.classList.remove("on"); w.el.classList.add("done"); }); onProgress(1); }
 function stopVoice(){
   cancelAnimationFrame(raf);
   try { if (srcNode) { srcNode.onended = null; srcNode.stop(); } } catch(e) {}
@@ -488,7 +659,7 @@ $("again").onclick = () => { unlock(); if (lastAudio) playBuffer(lastAudio); els
 
 async function speak(){
   if (!speech) return;
-  lastAudio = null;
+  lastAudio = null; lastProgress = 0;
   if (!voiceOff && voicePref === "man") {
     try {
       const r = await fetch("/api/speak", { method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify({ text: speech }) });
@@ -506,20 +677,19 @@ async function speak(){
   }
   browserVoice(speech);
 }
-
 function playBuffer(a){
   stopVoice();
   if (!ctx) return browserVoice(speech);
   srcNode = ctx.createBufferSource(); srcNode.buffer = a.buf; srcNode.connect(ctx.destination);
   const t0 = ctx.currentTime, dur = a.buf.duration;
   setSpeaking(true);
-  srcNode.onended = () => { cancelAnimationFrame(raf); setSpeaking(false); words.forEach(w => { w.el.classList.remove("on"); w.el.classList.add("done"); }); onProgress(1); };
+  srcNode.onended = () => { cancelAnimationFrame(raf); finish(); };
   srcNode.start();
   const tick = () => {
-    const t = ctx.currentTime - t0;
-    if (a.timed) { let k = -1; for (let i = 0; i < words.length; i++) { if (words[i].t != null && words[i].t <= t) k = i; } if (k >= 0) highlight(words[k].start); }
-    else highlight(Math.floor(speech.length * t / dur));
-    onProgress(t / dur);
+    const tm = ctx.currentTime - t0;
+    if (a.timed) { let k = -1; for (let i = 0; i < words.length; i++) { if (words[i].t != null && words[i].t <= tm) k = i; } if (k >= 0) highlight(words[k].start); }
+    else highlight(Math.floor(speech.length * tm / dur));
+    onProgress(tm / dur);
     raf = requestAnimationFrame(tick);
   };
   tick();
@@ -532,35 +702,38 @@ function setVoicePref(p){
   $("vMan").classList.toggle("on", p === "man"); $("vWoman").classList.toggle("on", p === "woman");
   try { localStorage.setItem("mpc_voice", p); } catch(e) {}
 }
-$("vMan").onclick = () => { setVoicePref("man"); unlock(); sayShort("Hi! I'll read your answers."); };
-$("vWoman").onclick = () => { setVoicePref("woman"); unlock(); sayShort("Hi! I'll read your answers."); };
-setVoicePref(voicePref);
+$("vMan").onclick = () => { setVoicePref("man"); unlock(); sayShort(t().hello); };
+$("vWoman").onclick = () => { setVoicePref("woman"); unlock(); sayShort(t().hello); };
 
 function pickVoice(){
-  const vs = speechSynthesis.getVoices().filter(v => /^en(-|_)US/i.test(v.lang));
+  const want = lang === "es" ? /^es(-|_)/i : /^en(-|_)US/i;
+  const vs = speechSynthesis.getVoices().filter(v => want.test(v.lang));
+  const male = /\bmale\b|andrew|brian|christopher|eric|guy|roger|steffan|aaron|evan|tom|nathan|alex|daniel|david|mark|fred|jorge|diego|pablo|juan|carlos|alvaro|raul|enrique|tomas|gerardo|jose/i;
+  const female = /female|aria|jenny|ava|emma|michelle|ana\b|samantha|zira|allison|susan|joanna|nicky|google us english|paulina|monica|helena|laura|dalia|elvira|ximena|sabina|lucia|francisca|conchita|marisol|google español/i;
+  const fits = voicePref === "woman" ? (v => female.test(v.name)) : (v => male.test(v.name) && !female.test(v.name));
   const natural = vs.filter(v => /natural|online|enhanced|premium/i.test(v.name));
-  const male = /\bmale\b|andrew|brian|christopher|eric|guy|roger|steffan|aaron|evan|tom|nathan|alex|daniel|david|mark|fred/i;
-  const female = /female|aria|jenny|ava|emma|michelle|ana\b|samantha|zira|allison|susan|joanna|nicky|google us english/i;
-  const want = voicePref === "woman" ? (v => female.test(v.name) && !/\bmale\b/i.test(v.name.replace(/female/i, ""))) : (v => male.test(v.name) && !female.test(v.name));
-  return natural.find(want) || vs.find(want) || natural[0] || vs[0] || null;
+  return natural.find(fits) || vs.find(fits) || natural[0] || vs[0] || null;
 }
 function browserVoice(text){
   if (!("speechSynthesis" in window)) { onProgress(1); return; }
   stopVoice();
   const u = new SpeechSynthesisUtterance(text);
   const v = pickVoice(); if (v) u.voice = v;
+  u.lang = lang === "es" ? "es-US" : "en-US";
   u.rate = level === "little" ? 0.95 : 1.03; u.pitch = 1.12;
   u.onstart = () => { setSpeaking(true); onProgress(0); };
   u.onboundary = e => { highlight(e.charIndex); onProgress(e.charIndex / text.length); };
-  u.onend = () => { setSpeaking(false); words.forEach(w => { w.el.classList.remove("on"); w.el.classList.add("done"); }); onProgress(1); };
+  u.onend = finish;
   speechSynthesis.speak(u);
-  setTimeout(() => { if (!speaking) onProgress(1); }, 2500); // if no voice is available, still show the board
+  setTimeout(() => { if (!speaking) onProgress(1); }, 2500);
 }
 function sayShort(text){
   if (!("speechSynthesis" in window) || !text) return;
-  const u = new SpeechSynthesisUtterance(text); const v = pickVoice(); if (v) u.voice = v; u.rate = 1; u.pitch = 1.12;
+  const u = new SpeechSynthesisUtterance(text); const v = pickVoice(); if (v) u.voice = v;
+  u.lang = lang === "es" ? "es-US" : "en-US"; u.rate = 1; u.pitch = 1.12;
   speechSynthesis.cancel(); speechSynthesis.speak(u);
 }
+if ("speechSynthesis" in window) speechSynthesis.onvoiceschanged = () => {};
 
 /* ---------- picture ---------- */
 async function loadImage(q){
@@ -581,16 +754,14 @@ async function loadImage(q){
 function buildQuiz(q){
   $("quizQ").textContent = q.question; $("fb").textContent = "";
   const box = $("opts"); box.innerHTML = ""; let done = false;
-  q.options.slice(0,3).forEach((t, i) => {
-    const b = document.createElement("button"); b.className = "opt"; b.textContent = t;
+  const opts = q.options.slice(0, 3);
+  $("answerKey").textContent = t().answerKey + (opts[q.answer] || "");
+  opts.forEach((o, i) => {
+    const b = document.createElement("button"); b.className = "opt"; b.textContent = o;
     b.onclick = () => {
       if (done) return;
-      if (i === q.answer) {
-        done = true; b.classList.add("right");
-        $("fb").textContent = "🎉 You got it! " + (q.why || ""); sayShort("You got it! " + (q.why || ""));
-      } else {
-        b.classList.add("wrong"); $("fb").textContent = "Good try! Pick another one."; sayShort("Good try! Pick another one.");
-      }
+      if (i === q.answer) { done = true; b.classList.add("right"); $("fb").textContent = t().gotIt + (q.why || ""); sayShort(t().gotIt.replace("🎉", "") + (q.why || "")); }
+      else { b.classList.add("wrong"); $("fb").textContent = t().goodTry; sayShort(t().goodTry); }
     };
     box.appendChild(b);
   });
@@ -599,16 +770,22 @@ function buildQuiz(q){
 
 /* ---------- welcome board ---------- */
 function welcome(){
+  const S = t();
   buildBoard([
-    { caption: "Welcome!", svg: "<text x='400' y='78' text-anchor='middle' font-family='Patrick Hand' font-size='42' fill='#24292f'>Welcome to</text><text x='400' y='142' text-anchor='middle' font-family='Patrick Hand' font-size='62' fill='#1f6feb'>Mr. Paul's Classroom!</text>" },
-    { caption: "I love questions!", svg: "<circle cx='400' cy='275' r='65' fill='#fff7d6' stroke='#f0a020' stroke-width='6'/><rect x='372' y='345' width='56' height='36' rx='8' fill='#79c0ff' stroke='#1f6feb' stroke-width='5'/><line x1='305' y1='220' x2='282' y2='202' stroke='#f0a020' stroke-width='6' stroke-linecap='round'/><line x1='495' y1='220' x2='518' y2='202' stroke='#f0a020' stroke-width='6' stroke-linecap='round'/><line x1='400' y1='192' x2='400' y2='170' stroke='#f0a020' stroke-width='6' stroke-linecap='round'/><circle cx='380' cy='265' r='6' fill='#24292f'/><circle cx='420' cy='265' r='6' fill='#24292f'/><path d='M378 288 Q 400 315 422 288' fill='none' stroke='#f0a020' stroke-width='5' stroke-linecap='round'/>" },
-    { caption: "Ask anything!", svg: "<text x='400' y='450' text-anchor='middle' font-family='Patrick Hand' font-size='50' fill='#2da44e'>Ask anything!</text>" }
+    { caption: S.wbc1, svg: "<text x='400' y='78' text-anchor='middle' font-family='Patrick Hand' font-size='42' fill='#24292f'>" + esc(S.wb1) + "</text><text x='400' y='142' text-anchor='middle' font-family='Patrick Hand' font-size='60' fill='#1f6feb'>" + esc(S.wb2) + "</text>" },
+    { caption: S.wbc2, svg: "<circle cx='400' cy='275' r='65' fill='#fff7d6' stroke='#f0a020' stroke-width='6'/><rect x='372' y='345' width='56' height='36' rx='8' fill='#79c0ff' stroke='#1f6feb' stroke-width='5'/><line x1='305' y1='220' x2='282' y2='202' stroke='#f0a020' stroke-width='6' stroke-linecap='round'/><line x1='495' y1='220' x2='518' y2='202' stroke='#f0a020' stroke-width='6' stroke-linecap='round'/><line x1='400' y1='192' x2='400' y2='170' stroke='#f0a020' stroke-width='6' stroke-linecap='round'/><circle cx='380' cy='265' r='6' fill='#24292f'/><circle cx='420' cy='265' r='6' fill='#24292f'/><path d='M378 288 Q 400 315 422 288' fill='none' stroke='#f0a020' stroke-width='5' stroke-linecap='round'/>" },
+    { caption: S.wbc3, svg: "<text x='400' y='450' text-anchor='middle' font-family='Patrick Hand' font-size='50' fill='#2da44e'>" + esc(S.wb3) + "</text>" }
   ]);
-  let i = 0; const go = () => { if (i < groups.length) { revealNext(); i++; setTimeout(go, 900); } };
-  (document.fonts ? document.fonts.ready : Promise.resolve()).then(go);
+  (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => { manual = true; playSteps(); });
 }
 
-if ("speechSynthesis" in window) speechSynthesis.onvoiceschanged = () => {};
+/* ---------- start ---------- */
+try { if (localStorage.getItem("mpc_lang") === "es") lang = "es"; } catch(e) {}
+setVoicePref(voicePref);
+applyText();
+$("title").textContent = t().welcomeTitle;
+$("read").innerHTML = "<p></p>"; $("read").firstChild.textContent = t().welcomeText;
+$("caption").textContent = t().start;
 setLevel("little");
 welcome();
 })();
