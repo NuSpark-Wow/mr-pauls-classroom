@@ -284,8 +284,9 @@ const T = {
     again: "🔊 Hear it again", stop: "⏹ Stop", print: "🖨️ Print", helpful: "Helpful?", thanks: "Thanks! 💛",
     hImg: "📷 What it looks like", hWow: "⭐ Surprise Fact!", hTry: "🧪 Try It at Home", hQuiz: "✏️ Quick Check",
     gotIt: "🎉 You got it! ", goodTry: "Good try! Pick another one.", answerKey: "Answer: ",
-    hDeep: "🔍 Keep learning!", askAbout: "🎤 Ask about this", tellMore: "➕ Tell me more", orTry: "Or try one of these:",
-    askAboutHint: t => "What do you want to know about " + t + "? Ask away!", moreQ: t => "Tell me more about " + t,
+    hDeep: "🔍 Keep learning!", askAbout: "💬 Ask about this", tellMore: "➕ Tell me more", orTry: "Or try one of these:",
+    askAboutHint: t => "What do you want to know about " + t + "? Type it, or tap the red mic and say it!", moreQ: t => "Tell me more about " + t,
+    moreHint: t => "What part of " + t + " do you want more about? Type it or tap the mic. Or just tap Ask for more about all of it!",
     oops: "Oops! My marker ran out.", oopsText: "Something went wrong. Please try your question again.", code: "Code: ",
     hello: "Hi! I'll read your answers.", helpCap: "You matter. 💛", otherCap: "Ask me another question!",
     notice: "🖼️ Every picture here is public domain or free to share, from sources like Wikimedia Commons, NASA, and the Smithsonian. Mr. Paul never saves your voice. Your words are turned into text right away, and nothing is recorded. Please don't share your name, school, or address.",
@@ -310,8 +311,9 @@ const T = {
     again: "🔊 Escuchar otra vez", stop: "⏹ Parar", print: "🖨️ Imprimir", helpful: "¿Te ayudó?", thanks: "¡Gracias! 💛",
     hImg: "📷 Así se ve", hWow: "⭐ ¡Dato sorpresa!", hTry: "🧪 Pruébalo en casa", hQuiz: "✏️ Repaso rápido",
     gotIt: "🎉 ¡Muy bien! ", goodTry: "¡Buen intento! Elige otra.", answerKey: "Respuesta: ",
-    hDeep: "🔍 ¡Sigue aprendiendo!", askAbout: "🎤 Pregunta sobre esto", tellMore: "➕ Cuéntame más", orTry: "O prueba una de estas:",
-    askAboutHint: t => "¿Qué quieres saber sobre " + t + "? ¡Pregunta!", moreQ: t => "Cuéntame más sobre " + t,
+    hDeep: "🔍 ¡Sigue aprendiendo!", askAbout: "💬 Pregunta sobre esto", tellMore: "➕ Cuéntame más", orTry: "O prueba una de estas:",
+    askAboutHint: t => "¿Qué quieres saber sobre " + t + "? ¡Escríbelo, o toca el micrófono rojo y dilo!", moreQ: t => "Cuéntame más sobre " + t,
+    moreHint: t => "¿Sobre qué parte de " + t + " quieres saber más? Escríbelo o toca el micrófono. ¡O toca Preguntar para saber más de todo!",
     oops: "¡Ay! Se acabó mi marcador.", oopsText: "Algo salió mal. Por favor, haz tu pregunta otra vez.", code: "Código: ",
     hello: "¡Hola! Yo leeré tus respuestas.", helpCap: "Tú importas. 💛", otherCap: "¡Hazme otra pregunta!",
     notice: "🖼️ Todas las fotos son de dominio público o libres para compartir, de fuentes como Wikimedia Commons, la NASA y el Smithsonian. Mr. Paul nunca guarda tu voz. Tus palabras se convierten en texto al instante y nada se graba. Por favor, no compartas tu nombre, escuela ni dirección.",
@@ -327,6 +329,7 @@ const T = {
 let level = "little", lang = "en", lesson = null, busy = false, followUp = "", reqId = 0;
 let groups = [], shown = 0, manual = false, lastProgress = 0, boardStart = 0, boardOff = false, lastReveal = 0, pumpTimer = 0, liveBoard = false;
 let words = [], speech = "";
+let narrStarted = false, narrTimer = 0, pStarts = [], lastCi = -1, pendingMore = null, audioP = null;
 let ctx = null, srcNode = null, lastAudio = null, raf = 0, voiceOff = false, speaking = false;
 const t = () => T[lang];
 function track(name, data){ try { window.va("event", { name, data }); } catch(e) {} }
@@ -415,15 +418,26 @@ if (!SR) {
   rec.onerror = e => { if (e.error === "not-allowed" || e.error === "service-not-allowed") $("hint").textContent = t().micBlocked; };
   $("mic").onclick = () => { unlock(); if (listening) { rec.stop(); return; } $("q").value = ""; $("go").classList.remove("ready"); startListening(); };
 }
-$("go").onclick = () => { unlock(); ask(); };
-$("q").addEventListener("keydown", e => { if (e.key === "Enter") { unlock(); ask(); } });
+// If "Tell me more" is waiting, Ask uses what they typed or said (or goes deeper on everything when the box is empty)
+function goAsk(){
+  unlock();
+  if (pendingMore && !busy) {
+    const pm = pendingMore; pendingMore = null;
+    const typed = $("q").value.trim();
+    ask(typed || t().moreQ(pm.title), pm.title, { more: true, prev: pm.prev });
+    return;
+  }
+  ask();
+}
+$("go").onclick = goAsk;
+$("q").addEventListener("keydown", e => { if (e.key === "Enter") goAsk(); });
 
 /* ---------- asking: words and drawing are fetched at the same time ---------- */
 const norm = s => s.toLowerCase().replace(/[?!.¿¡,]+/g, " ").replace(/\s+/g, " ").trim();
 async function fetchPart(part, question, context, opts){
   let r;
   if (!context && !opts.more) {
-    const url = `/api/ask?part=${part}&level=${level}&lang=${lang}&v=5&q=${encodeURIComponent(norm(question))}`;
+    const url = `/api/ask?part=${part}&level=${level}&lang=${lang}&v=6&q=${encodeURIComponent(norm(question))}`;
     r = await fetch(url);
   } else {
     r = await fetch("/api/ask", { method:"POST", headers:{ "content-type":"application/json" },
@@ -433,11 +447,11 @@ async function fetchPart(part, question, context, opts){
   return { ok: r.ok, status: r.status, d };
 }
 // Reads the drawing as it streams in: one finished step per line, drawn right away.
-async function streamBoard(question, context, opts, onStep){
+async function streamBoard(question, context, opts, a, onStep){
   let r;
-  if (!context && !opts.more) r = await fetch(`/api/ask?part=board&level=${level}&lang=${lang}&v=5&q=${encodeURIComponent(norm(question))}`);
+  if (!context && !opts.more) r = await fetch(`/api/ask?part=board&level=${level}&lang=${lang}&v=6&q=${encodeURIComponent(norm(question))}&a=${encodeURIComponent(a)}`);
   else r = await fetch("/api/ask", { method:"POST", headers:{ "content-type":"application/json" },
-    body: JSON.stringify({ part: "board", question, level, lang, context: context || "", more: !!opts.more, prev: opts.prev || "" }) });
+    body: JSON.stringify({ part: "board", question, level, lang, context: context || "", more: !!opts.more, prev: opts.prev || "", a }) });
   if (!r.ok) throw new Error("H" + r.status);
   let n = 0, buf = "";
   const handle = line => {
@@ -467,7 +481,29 @@ function addStep(s){
   g.querySelectorAll("text").forEach(el => el.addEventListener("click", () => { if (!speaking) sayShort(el.textContent); }));
   $("svg").appendChild(g); groups.push(g);
   $("thinking").classList.remove("on");
-  updateCtrls(); pump();
+  updateCtrls();
+  if (!narrStarted) { if (!shown) revealNext(); startNarration(); }
+  else syncBoard(lastCi);
+}
+// Narration waits for picture 1, then each picture appears when Mr. Paul reaches its paragraph
+function startNarration(){
+  if (narrStarted) return;
+  narrStarted = true; clearTimeout(narrTimer);
+  const my = reqId;
+  (audioP || Promise.resolve(null)).then(a => {
+    if (my !== reqId) return;
+    if (a) playBuffer(a); else browserVoice(speech);
+  });
+}
+function paraAt(ci){
+  if (ci === Infinity) return Infinity;
+  let p = 0; for (let i = 0; i < pStarts.length; i++) if (pStarts[i] <= ci) p = i;
+  return p;
+}
+function syncBoard(ci){
+  if (manual || boardOff || !liveBoard) return;
+  const want = Math.min(paraAt(ci) + 1, groups.length);
+  while (shown < want) revealNext();
 }
 function pump(){
   clearTimeout(pumpTimer);
@@ -484,23 +520,17 @@ async function ask(text, context, opts){
   followUp = "";
   const question = (text || $("q").value).trim();
   if (!question || busy) return;
+  if (!opts.more) pendingMore = null;
   if (text) $("q").value = text;
   const my = ++reqId;
   busy = true; $("go").disabled = true; $("go").classList.remove("ready");
   stopVoice(); $("thinkText").textContent = t().thinking; $("thinking").classList.add("on");
   $("hint").textContent = t().markers;
 
-  // the drawing starts right away and appears step by step as each one is ready
-  boardOff = false; lastReveal = 0; clearTimeout(pumpTimer);
+  // words come first; then each paragraph gets its own picture
+  boardOff = false; lastReveal = 0; clearTimeout(pumpTimer); clearTimeout(narrTimer);
+  narrStarted = false; lastCi = -1; audioP = null;
   buildBoard([]); liveBoard = true;
-  const boardP = (async () => {
-    let total = 0;
-    for (let a = 0; a < 2 && total === 0; a++) {
-      try { total += await streamBoard(question, context, opts, s => { if (my === reqId && !boardOff) addStep(s); }); }
-      catch(e) {}
-    }
-    return total;
-  })();
 
   let data = null, reason = "N0";
   for (let attempt = 0; attempt < 2 && !data; attempt++) {
@@ -533,13 +563,21 @@ async function ask(text, context, opts){
   }
   busy = false; $("go").disabled = false;
 
-  // words are showing; the drawing keeps arriving on its own
+  // words are showing; Mr. Paul starts talking as soon as picture 1 is on the board
   if (data.type !== "lesson") { boardOff = true; $("thinking").classList.remove("on"); return; }
-  if (!groups.length) $("thinkText").textContent = t().drawing;
-  const total = await boardP;
+  $("thinkText").textContent = t().drawing; $("thinking").classList.add("on");
+  narrTimer = setTimeout(startNarration, 15000);   // safety valve if a picture is slow
+  const a = (data.answer || []).map(x => String(x).trim()).filter(Boolean).slice(0, 4).map(x => x.slice(0, 700)).join("\n");
+  let total = 0;
+  for (let k = 0; k < 2 && total === 0 && my === reqId; k++) {
+    try { total += await streamBoard(question, context, opts, a, s => { if (my === reqId && !boardOff) addStep(s); }); }
+    catch(e) {}
+  }
   if (my !== reqId) return;
   $("thinking").classList.remove("on");
   if (!total && !groups.length) { boardOff = true; buildBoard([{ caption: t().otherCap, svg: simpleCard("redirect") }]); revealNext(); }
+  startNarration();
+  syncBoard(lastCi);
 }
 
 /* ---------- render a lesson ---------- */
@@ -548,7 +586,9 @@ function render(){
   $("title").textContent = L.title || "";
   speech = (L.answer || []).join(" ");
   words = []; let offset = 0; const read = $("read"); read.innerHTML = "";
+  pStarts = [];
   (L.answer || []).forEach(p => {
+    pStarts.push(offset);
     const el = document.createElement("p");
     p.replace(/\S+|\s+/g, (tok, i) => {
       if (/\S/.test(tok)) { const s = document.createElement("span"); s.className = "w"; s.textContent = tok; el.appendChild(s); words.push({ el: s, start: offset + i, t: null }); }
@@ -579,12 +619,14 @@ function render(){
     const row = $("deeper"); row.innerHTML = "";
     (L.deeper || []).slice(0, 3).forEach(q => { const b = document.createElement("button"); b.className = "chip"; b.textContent = q; b.onclick = () => { unlock(); ask(q, L.title); window.scrollTo({ top: 0, behavior: "smooth" }); }; row.appendChild(b); });
     $("orTry").classList.toggle("hide", !row.children.length);
-    $("tellMore").onclick = () => { unlock(); ask(S.moreQ(L.title), L.title, { more: true, prev: speech }); window.scrollTo({ top: 0, behavior: "smooth" }); };
-    $("askAbout").onclick = () => { unlock(); followUp = L.title; $("q").value = ""; window.scrollTo({ top: 0, behavior: "smooth" }); $("hint").textContent = S.askAboutHint(L.title); startListening(); };
+    const prevSpeech = speech;
+    const readyBox = hintText => { $("q").value = ""; $("go").classList.add("ready"); $("hint").textContent = hintText; $("q").focus({ preventScroll: true }); window.scrollTo({ top: 0, behavior: "smooth" }); };
+    $("tellMore").onclick = () => { unlock(); followUp = ""; pendingMore = { title: L.title, prev: prevSpeech }; readyBox(S.moreHint(L.title)); };
+    $("askAbout").onclick = () => { unlock(); pendingMore = null; followUp = L.title; readyBox(S.askAboutHint(L.title)); };
     $("deepCard").classList.remove("hide");
   }
-  if (!isLesson) { buildBoard([{ caption: L.type === "help" ? S.helpCap : S.otherCap, svg: simpleCard(L.type) }]); revealNext(); }
-  speak();
+  if (!isLesson) { buildBoard([{ caption: L.type === "help" ? S.helpCap : S.otherCap, svg: simpleCard(L.type) }]); revealNext(); speak(); }
+  else audioP = prepareAudio();   // fetch the voice now so it's ready when picture 1 lands
 }
 
 function simpleCard(type){
@@ -718,13 +760,14 @@ $("prev").onclick = () => {
   updateCtrls();
 };
 $("replay").onclick = () => { manual = true; playSteps(); };
-function onProgress(f){ lastProgress = Math.max(lastProgress, f); }
+function onProgress(f){ lastProgress = Math.max(lastProgress, f); if (f >= 1) { lastCi = Infinity; syncBoard(Infinity); } }
 
 /* ---------- voice + read-along ---------- */
 function highlight(ci){
   let k = -1;
   for (let i = 0; i < words.length; i++) { if (words[i].start <= ci) k = i; else break; }
   words.forEach((w, i) => { w.el.classList.toggle("on", i === k); w.el.classList.toggle("done", i < k); });
+  if (ci > lastCi) { lastCi = ci; syncBoard(ci); }
 }
 function clearHighlight(){ words.forEach(w => w.el.classList.remove("on","done")); $("read").classList.remove("speaking"); }
 function setSpeaking(on){ speaking = on; $("read").classList.toggle("speaking", on); $("stop").classList.toggle("hide", !on); $("again").classList.toggle("hide", on); }
@@ -741,6 +784,12 @@ $("again").onclick = () => { unlock(); if (lastAudio) playBuffer(lastAudio); els
 
 async function speak(){
   if (!speech) return;
+  const a = await prepareAudio();
+  if (a) playBuffer(a); else browserVoice(speech);
+}
+// Gets the recorded-voice audio (or null, meaning use the browser's voice)
+async function prepareAudio(){
+  if (!speech) return null;
   lastAudio = null; lastProgress = 0;
   if (!voiceOff && voicePref === "man") {
     try {
@@ -753,11 +802,11 @@ async function speak(){
         const times = d.alignment && d.alignment.character_start_times_seconds;
         words.forEach(w => { w.t = times && times[w.start] != null ? times[w.start] : null; });
         lastAudio = { buf, timed: !!times };
-        return playBuffer(lastAudio);
+        return lastAudio;
       }
     } catch(e) {}
   }
-  browserVoice(speech);
+  return null;
 }
 function playBuffer(a){
   stopVoice();
@@ -858,7 +907,7 @@ function welcome(){
     { caption: S.wbc2, svg: "<circle cx='400' cy='275' r='65' fill='#fff7d6' stroke='#f0a020' stroke-width='6'/><rect x='372' y='345' width='56' height='36' rx='8' fill='#79c0ff' stroke='#1f6feb' stroke-width='5'/><line x1='305' y1='220' x2='282' y2='202' stroke='#f0a020' stroke-width='6' stroke-linecap='round'/><line x1='495' y1='220' x2='518' y2='202' stroke='#f0a020' stroke-width='6' stroke-linecap='round'/><line x1='400' y1='192' x2='400' y2='170' stroke='#f0a020' stroke-width='6' stroke-linecap='round'/><circle cx='380' cy='265' r='6' fill='#24292f'/><circle cx='420' cy='265' r='6' fill='#24292f'/><path d='M378 288 Q 400 315 422 288' fill='none' stroke='#f0a020' stroke-width='5' stroke-linecap='round'/>" },
     { caption: S.wbc3, svg: "<text x='400' y='450' text-anchor='middle' font-family='Patrick Hand' font-size='50' fill='#2da44e'>" + esc(S.wb3) + "</text>" }
   ]);
-  (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => { manual = true; playSteps(); });
+  (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => { if (liveBoard || lesson || busy) return; manual = true; playSteps(); });
 }
 
 /* ---------- start ---------- */
