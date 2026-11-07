@@ -88,6 +88,8 @@ THE SMART BOARD: an 800 wide x 500 tall whiteboard. Each step adds a drawing and
 - Max 12 elements per step. Later steps stay on the board, so leave room for them.
 - Simple, clear, kid-friendly: shapes, arrows, labels, step-by-step math.
 
+LEGEND: for each step, list every math sign, symbol, or unit abbreviation that appears in that step's svg (for example ×, ÷, =, +, °F, °C, cm, kg, %), each with a very short kid-friendly meaning (for example "× means times", "cm means centimeters"). Write meanings in the same language as the lesson. Use [] when a step has no symbols, which is most of the time for pictures.
+
 Always respond by calling the give_board tool.`;
 
 const LESSON_TOOL = {
@@ -114,7 +116,7 @@ const BOARD_TOOL = {
   description: "Deliver the smart-board drawing steps.",
   input_schema: {
     type: "object",
-    properties: { steps: { type: "array", items: { type: "object", properties: { caption: { type: "string" }, svg: { type: "string" } } } } },
+    properties: { steps: { type: "array", items: { type: "object", properties: { caption: { type: "string" }, svg: { type: "string" }, legend: { type: "array", items: { type: "object", properties: { symbol: { type: "string" }, meaning: { type: "string" } } } } } } } },
     required: ["steps"]
   }
 };
@@ -223,7 +225,8 @@ module.exports = async (req, res) => {
   if (part === "board") {
     try {
       const b = await withRetry(() => callTool(SYSTEM_BOARD, BOARD_TOOL, user, 8000, j => Array.isArray(j.steps)), 25000);
-      const steps = b.steps.slice(0, 6).map(s => ({ caption: String(s.caption || ""), svg: cleanSvg(s.svg) }));
+      const steps = b.steps.slice(0, 6).map(s => ({ caption: String(s.caption || ""), svg: cleanSvg(s.svg),
+        legend: (Array.isArray(s.legend) ? s.legend : []).slice(0, 8).map(l => ({ symbol: String(l && l.symbol || "").slice(0, 12), meaning: String(l && l.meaning || "").slice(0, 80) })).filter(l => l.symbol && l.meaning) }));
       return send(200, { steps }, true);
     } catch (e) {
       return send(500, { error: "oops", reason: errorCode(e) });
