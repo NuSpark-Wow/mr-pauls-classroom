@@ -1014,11 +1014,9 @@ $("vMan").onclick = () => { setVoicePref("man"); unlock(); sayShort(t().hello); 
 $("vWoman").onclick = () => { setVoicePref("woman"); unlock(); sayShort(t().hello); };
 
 
-// If the phone has no male voice, the Man button lowers the pitch so it still sounds male
 const MALE_RE = /\bmale\b|andrew|brian|christopher|eric|guy|roger|steffan|aaron|evan|tom|nathan|alex|daniel|david|mark|fred|jorge|diego|pablo|juan|carlos|alvaro|raul|enrique|tomas|gerardo|jose/i, FEMALE_RE = /female|aria|jenny|ava|emma|michelle|ana\b|samantha|zira|allison|susan|joanna|nicky|google us english|paulina|monica|helena|laura|dalia|elvira|ximena|sabina|lucia|francisca|conchita|marisol|google español/i;
 function pitchFor(v, base){
-  if (voicePref !== "man") return base;
-  return v && MALE_RE.test(v.name) && !FEMALE_RE.test(v.name) ? base : 0.62;
+  return base;   // lowering the pitch of a female phone voice sounded like an older woman, so the fallback keeps the natural voice
 }
 // Some phone voices never report which word they are on; then estimate it from the clock so the board keeps up
 let estTimer = 0, estStart = 0, lastBoundary = 0;
