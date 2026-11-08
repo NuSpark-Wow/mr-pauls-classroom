@@ -1,18 +1,25 @@
 // Mr. Paul's voice — ElevenLabs text-to-speech with word timing (for read-along)
-// Env: ELEVENLABS_API_KEY, ELEVENLABS_VOICE_ID (both optional — without them the page uses the browser voice)
+// Env: ELEVENLABS_API_KEY (required for the voice; without it the page uses the browser voice)
+// Optional: ELEVENLABS_VOICE_ID (Man) and ELEVENLABS_VOICE_ID_WOMAN (Woman) to swap in different voices
 // Only Mr. Paul's own words are sent here. No child audio ever reaches this server.
 
+const DEFAULT_MAN = "nzFihrBIvB34imQBuxub";   // Josh - Teacher for Kids
+const DEFAULT_WOMAN = "oClOrzqamOXmtcB8iqTj"; // Emma - Bright Kids Educator
 const cache = new Map(); // repeat answers don't cost twice (resets when the server sleeps)
 
 module.exports = async (req, res) => {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
   const key = process.env.ELEVENLABS_API_KEY;
-  const voice = process.env.ELEVENLABS_VOICE_ID;
-  if (!key || !voice) return res.status(501).json({ error: "voice_off" });
+  if (!key) return res.status(501).json({ error: "voice_off" });
+  const who = (req.body || {}).voice === "woman" ? "woman" : "man";
+  const voice = who === "woman"
+    ? (process.env.ELEVENLABS_VOICE_ID_WOMAN || DEFAULT_WOMAN)
+    : (process.env.ELEVENLABS_VOICE_ID || DEFAULT_MAN);
 
   const text = String((req.body || {}).text || "").trim().slice(0, 1500);
   if (!text) return res.status(400).json({ error: "empty" });
-  if (cache.has(text)) return res.json(cache.get(text));
+  const ck = who + "|" + text;
+  if (cache.has(ck)) return res.json(cache.get(ck));
 
   try {
     const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}/with-timestamps?output_format=mp3_44100_128`, {
@@ -28,7 +35,7 @@ module.exports = async (req, res) => {
     const d = await r.json();
     const out = { audio: d.audio_base64, alignment: d.alignment || d.normalized_alignment || null };
     if (cache.size > 200) cache.clear();
-    cache.set(text, out);
+    cache.set(ck, out);
     return res.json(out);
   } catch (e) {
     return res.status(502).json({ error: "voice_failed" });
