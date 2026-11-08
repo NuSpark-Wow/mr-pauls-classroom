@@ -586,8 +586,8 @@ async function streamBoard(question, context, opts, a, onStep){
 function addStep(s){
   const g = sanitize(s.svg || "") || document.createElementNS(NS, "g");
   g.style.display = "none"; g.dataset.caption = s.caption || "";
-  g._legend = Array.isArray(s.legend) ? s.legend : [];
-  g._formulas = Array.isArray(s.formulas) ? s.formulas : [];
+  g._legend = realItems(s.legend, "symbol", "meaning");
+  g._formulas = realItems(s.formulas, "formula", "explanation");
   g.querySelectorAll("text").forEach(el => el.addEventListener("click", () => { if (!speaking) sayShort(el.textContent); }));
   $("svg").appendChild(g); groups.push(g);
   $("thinking").classList.remove("on");
@@ -786,6 +786,9 @@ window.addEventListener("afterprint", () => {
 
 /* ---------- smart board: safe SVG + live drawing ---------- */
 const OK_TAGS = new Set(["g","path","line","circle","ellipse","rect","polyline","polygon","text","tspan"]);
+// Drops filler legend rows like "none = none" that the AI sometimes adds
+const EMPTY_ITEM = /^\s*(none|n\/a|na|null|-+|—)?\s*\.?\s*$/i;
+function realItems(list, k1, k2){ return Array.isArray(list) ? list.filter(x => x && !EMPTY_ITEM.test(String(x[k1] || "")) && !EMPTY_ITEM.test(String(x[k2] || ""))) : []; }
 function sanitize(markup){
   const doc = new DOMParser().parseFromString(`<svg xmlns="${NS}">${markup}</svg>`, "image/svg+xml");
   let root = doc.documentElement;
@@ -816,8 +819,8 @@ function buildBoard(steps){
   steps.forEach(s => {
     const g = sanitize(s.svg || "") || document.createElementNS(NS, "g");
     g.style.display = "none"; g.dataset.caption = s.caption || "";
-    g._legend = Array.isArray(s.legend) ? s.legend : [];
-    g._formulas = Array.isArray(s.formulas) ? s.formulas : [];
+    g._legend = realItems(s.legend, "symbol", "meaning");
+    g._formulas = realItems(s.formulas, "formula", "explanation");
     svg.appendChild(g); groups.push(g);
   });
   svg.querySelectorAll("text").forEach(el => el.addEventListener("click", () => { if (!speaking) sayShort(el.textContent); }));
