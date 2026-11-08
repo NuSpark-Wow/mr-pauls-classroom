@@ -302,6 +302,9 @@ module.exports = async (req, res) => {
   const prev = isGet ? "" : String(src.prev || "").slice(0, 1200);
   // the drawing request carries Mr. Paul's answer, one paragraph per line, so each picture matches a paragraph
   const paras = String(src.a || "").split("\n").map(x => x.trim()).filter(Boolean).slice(0, 4).map(x => x.slice(0, 700));
+  // optional picture (POST only): explained, never saved
+  const image = isGet ? "" : String(src.image || "");
+  if (image && (image.length > 4000000 || !/^[A-Za-z0-9+/=]+$/.test(image.slice(0, 200)))) return send(400, { error: "bad_image" });
   if (!question) return send(400, { error: "empty" });
 
   if (HELP_WORDS.test(question)) return send(200, part === "board" ? { steps: [] } : HELP[lang], true);
@@ -329,8 +332,12 @@ module.exports = async (req, res) => {
   }
 
   let lesson;
+  const content = image ? [
+    { type: "image", source: { type: "base64", media_type: "image/jpeg", data: image } },
+    { type: "text", text: user + `\n\nThe child attached the photo above. Figure out what it shows and teach a lesson about it (or answer their question about it). Start by saying what you see in the photo. For image_query, use plain words for the main thing in the photo.` }
+  ] : user;
   try {
-    lesson = await withRetry(() => callTool(SYSTEM_LESSON, LESSON_TOOL, user, 4000, j => Array.isArray(j.answer)), 25000);
+    lesson = await withRetry(() => callTool(SYSTEM_LESSON, LESSON_TOOL, content, 4000, j => Array.isArray(j.answer)), 25000);
   } catch (e) {
     return send(500, { error: "oops", reason: errorCode(e) });
   }

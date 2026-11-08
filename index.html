@@ -35,6 +35,11 @@ button{font-family:inherit;cursor:pointer}
 .mic{flex:none;width:72px;height:72px;border-radius:50%;border:0;background:var(--red);color:#fff;font-size:32px;box-shadow:0 4px 0 #b83c35;transition:transform .1s}
 .mic:active{transform:translateY(3px);box-shadow:0 1px 0 #b83c35}
 .mic.listening{animation:pulse 1.1s infinite}
+.mic.cam{background:#2a7de1;box-shadow:0 4px 0 #1d5fb0}
+.mic.cam:active{box-shadow:0 1px 0 #1d5fb0}
+.photo{display:flex;align-items:center;gap:10px;margin-top:8px}
+.photo img{width:64px;height:64px;object-fit:cover;border-radius:10px;border:3px solid var(--line)}
+.photo button{border:0;background:var(--line);color:var(--ink);border-radius:999px;padding:6px 12px;font:inherit;font-weight:700;font-size:14px}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(229,83,75,.55)}100%{box-shadow:0 0 0 22px rgba(229,83,75,0)}}
 .field{flex:1;min-width:0}
 .field input{width:100%;border:3px solid var(--line);border-radius:14px;padding:14px 16px;font-size:20px;font-family:inherit;font-weight:700;color:var(--ink);outline:none}
@@ -134,6 +139,8 @@ button{font-family:inherit;cursor:pointer}
 @media (max-width:560px){
   .ask{flex-wrap:wrap}
   .mic{width:60px;height:60px;font-size:26px}
+  .field{flex-basis:100%;order:3}
+  .go{order:4}
   .go{width:100%;height:54px}
   .opts{grid-template-columns:1fr}
   .levels button{padding:8px 12px;font-size:14px}
@@ -212,9 +219,12 @@ body.present .caption{font-size:clamp(22px,2vw,30px)}
 
   <div class="ask">
     <button class="mic" id="mic" aria-label="Talk to Mr. Paul">🎤</button>
+    <button class="mic cam" id="cam" aria-label="Add a picture">📷</button>
+    <input type="file" id="camFile" accept="image/*" hidden>
     <div class="field">
       <input id="q" maxlength="200" autocomplete="off">
       <div class="hint" id="hint"></div>
+      <div class="photo hide" id="photoBox"><img id="photoImg" alt=""><button id="photoX"></button></div>
     </div>
     <button class="go" id="go"></button>
   </div>
@@ -296,6 +306,7 @@ const T = {
   en: {
     brand: "Mr. Paul's <span>Classroom</span>", little: "Grades K–2<small>Little Learners</small>", big: "Grades 3–6<small>Big Learners</small>",
     man: "🔊 Man", woman: "🔊 Woman", present: "🖥️ Classroom", presentOff: "✖ Exit classroom",
+    explainPic: "Explain this picture", photoRemove: "✕ Remove picture", photoReady: "Got your picture! Tap Ask, or type what you want to know about it.",
     placeholder: "Ask anything…", hint: "Tap the red mic and ask Mr. Paul anything you want to learn!",
     noMic: "Tap the red mic, then the 🎤 on your keyboard to talk. Or just type!", listening: "I'm listening… ask your question!",
     heard: "Is that right? Tap Ask! (Or tap the mic to try again.)", nothing: "I didn't hear anything. Tap the mic and try again!",
@@ -325,6 +336,7 @@ const T = {
   es: {
     brand: "La Clase de <span>Mr. Paul</span>", little: "Grados K–2<small>Pequeños</small>", big: "Grados 3–6<small>Grandes</small>",
     man: "🔊 Hombre", woman: "🔊 Mujer", present: "🖥️ Modo clase", presentOff: "✖ Salir",
+    explainPic: "Explica esta imagen", photoRemove: "✕ Quitar imagen", photoReady: "¡Tengo tu imagen! Toca Preguntar, o escribe lo que quieres saber.",
     placeholder: "Pregunta lo que quieras…", hint: "¡Toca el micrófono rojo y pregúntale a Mr. Paul lo que quieras aprender!",
     noMic: "Toca el micrófono rojo y luego el 🎤 de tu teclado para hablar. ¡O escribe!", listening: "Te escucho… ¡haz tu pregunta!",
     heard: "¿Está bien? ¡Toca Preguntar! (O toca el micrófono otra vez.)", nothing: "No escuché nada. ¡Toca el micrófono e intenta otra vez!",
@@ -466,6 +478,31 @@ function goAsk(){
 $("go").onclick = goAsk;
 $("q").addEventListener("keydown", e => { if (e.key === "Enter") goAsk(); });
 
+/* ---------- picture upload: explained, then thrown away (never saved) ---------- */
+let photo = null;
+function clearPhoto(){
+  photo = null; $("photoBox").classList.add("hide"); $("photoImg").removeAttribute("src"); $("camFile").value = "";
+  if ($("q").value === t().explainPic) $("q").value = "";
+}
+$("cam").onclick = () => { unlock(); $("camFile").click(); };
+$("photoX").onclick = clearPhoto;
+$("camFile").onchange = () => {
+  const f = $("camFile").files && $("camFile").files[0]; if (!f) return;
+  const url = URL.createObjectURL(f), img = new Image();
+  img.onload = () => {
+    const max = 1280, k = Math.min(1, max / Math.max(img.width, img.height));
+    const c = document.createElement("canvas"); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+    const dataUrl = c.toDataURL("image/jpeg", 0.82);
+    photo = dataUrl.split(",")[1];
+    $("photoImg").src = dataUrl; $("photoX").textContent = t().photoRemove; $("photoBox").classList.remove("hide");
+    if (!$("q").value.trim()) $("q").value = t().explainPic;
+    $("hint").textContent = t().photoReady; $("go").classList.add("ready");
+  };
+  img.onerror = () => URL.revokeObjectURL(url);
+  img.src = url;
+};
+
 /* ---------- follow-up box (Ask about this / Tell me more) right under the buttons ---------- */
 let followMode = "", followTitle = "", followPrev = "";
 function openFollow(mode, title, prev){
@@ -509,12 +546,12 @@ function toBoard(){
 const norm = s => s.toLowerCase().replace(/[?!.¿¡,]+/g, " ").replace(/\s+/g, " ").trim();
 async function fetchPart(part, question, context, opts){
   let r;
-  if (!context && !opts.more) {
+  if (!context && !opts.more && !opts.image) {
     const url = `/api/ask?part=${part}&level=${level}&lang=${lang}&v=7&q=${encodeURIComponent(norm(question))}`;
     r = await fetch(url);
   } else {
     r = await fetch("/api/ask", { method:"POST", headers:{ "content-type":"application/json" },
-      body: JSON.stringify({ part, question, level, lang, context: context || "", more: !!opts.more, prev: opts.prev || "" }) });
+      body: JSON.stringify({ part, question, level, lang, context: context || "", more: !!opts.more, prev: opts.prev || "", image: opts.image || "" }) });
   }
   const d = await r.json().catch(() => null);
   return { ok: r.ok, status: r.status, d };
@@ -522,9 +559,9 @@ async function fetchPart(part, question, context, opts){
 // Reads the drawing as it streams in: one finished step per line, drawn right away.
 async function streamBoard(question, context, opts, a, onStep){
   let r;
-  if (!context && !opts.more) r = await fetch(`/api/ask?part=board&level=${level}&lang=${lang}&v=7&q=${encodeURIComponent(norm(question))}&a=${encodeURIComponent(a)}`);
+  if (!context && !opts.more && !opts.boardTitle) r = await fetch(`/api/ask?part=board&level=${level}&lang=${lang}&v=7&q=${encodeURIComponent(norm(question))}&a=${encodeURIComponent(a)}`);
   else r = await fetch("/api/ask", { method:"POST", headers:{ "content-type":"application/json" },
-    body: JSON.stringify({ part: "board", question, level, lang, context: context || "", more: !!opts.more, prev: opts.prev || "", a }) });
+    body: JSON.stringify({ part: "board", question, level, lang, context: context || opts.boardTitle || "", more: !!opts.more, prev: opts.prev || "", a }) });
   if (!r.ok) throw new Error("H" + r.status);
   let n = 0, buf = "";
   const handle = line => {
@@ -591,7 +628,8 @@ async function ask(text, context, opts){
   opts = opts || {};
   if (!context && followUp) context = followUp;
   followUp = "";
-  const question = (text || $("q").value).trim();
+  let question = (text || $("q").value).trim();
+  if (!text && photo && !context && !opts.more) { opts.image = photo; if (!question) question = t().explainPic; }
   if (!question || busy) return;
   if (!opts.more) pendingMore = null;
   if (text) $("q").value = text;
@@ -617,6 +655,7 @@ async function ask(text, context, opts){
   if (my !== reqId) return;
   try {
     if (!data) throw new Error(reason);
+    if (opts.image) { clearPhoto(); opts.boardTitle = data.title || "the picture"; }
     lesson = data; render();
     if (opts.scroll) toBoard();
     $("hint").textContent = t().another;
