@@ -8,8 +8,24 @@ const DEFAULT_WOMAN = "oClOrzqamOXmtcB8iqTj"; // Emma - Bright Kids Educator
 const cache = new Map(); // repeat answers don't cost twice (resets when the server sleeps)
 
 module.exports = async (req, res) => {
-  if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
   const key = process.env.ELEVENLABS_API_KEY;
+  // Health check you can open in a browser: /api/speak  (never shows the key)
+  if (req.method === "GET") {
+    const out = { api_key_set: !!key, man_voice_id: process.env.ELEVENLABS_VOICE_ID || DEFAULT_MAN, woman_voice_id: process.env.ELEVENLABS_VOICE_ID_WOMAN || DEFAULT_WOMAN };
+    if (key) {
+      for (const who of ["man", "woman"]) {
+        try {
+          const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${out[who + "_voice_id"]}?output_format=mp3_22050_32`, {
+            method: "POST", headers: { "xi-api-key": key, "content-type": "application/json" },
+            body: JSON.stringify({ text: "Hi.", model_id: process.env.ELEVENLABS_MODEL || "eleven_multilingual_v2" })
+          });
+          out[who] = r.ok ? "working" : `error ${r.status}: ${(await r.text()).slice(0, 200)}`;
+        } catch (e) { out[who] = "error: " + e.message; }
+      }
+    }
+    return res.json(out);
+  }
+  if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
   if (!key) return res.status(501).json({ error: "voice_off" });
   const who = (req.body || {}).voice === "woman" ? "woman" : "man";
   const voice = who === "woman"
