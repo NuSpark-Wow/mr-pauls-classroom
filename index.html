@@ -946,9 +946,9 @@ function highlight(ci){
 }
 function clearHighlight(){ words.forEach(w => w.el.classList.remove("on","done")); $("read").classList.remove("speaking"); }
 function setSpeaking(on){ speaking = on; $("read").classList.toggle("speaking", on); $("stop").classList.toggle("hide", !on); $("again").classList.toggle("hide", on); }
-function finish(){ setSpeaking(false); words.forEach(w => { w.el.classList.remove("on"); w.el.classList.add("done"); }); onProgress(1); }
+function finish(){ stopEstimate(); setSpeaking(false); words.forEach(w => { w.el.classList.remove("on"); w.el.classList.add("done"); }); onProgress(1); }
 function stopVoice(){
-  cancelAnimationFrame(raf);
+  cancelAnimationFrame(raf); stopEstimate();
   try { if (shortNode) shortNode.stop(); } catch(e) {}
   shortNode = null; shortId++;
   try { if (srcNode) { srcNode.onended = null; srcNode.stop(); } } catch(e) {}
@@ -1013,6 +1013,26 @@ function setVoicePref(p){
 $("vMan").onclick = () => { setVoicePref("man"); unlock(); sayShort(t().hello); };
 $("vWoman").onclick = () => { setVoicePref("woman"); unlock(); sayShort(t().hello); };
 
+
+// If the phone has no male voice, the Man button lowers the pitch so it still sounds male
+const MALE_RE = /\bmale\b|andrew|brian|christopher|eric|guy|roger|steffan|aaron|evan|tom|nathan|alex|daniel|david|mark|fred|jorge|diego|pablo|juan|carlos|alvaro|raul|enrique|tomas|gerardo|jose/i, FEMALE_RE = /female|aria|jenny|ava|emma|michelle|ana\b|samantha|zira|allison|susan|joanna|nicky|google us english|paulina|monica|helena|laura|dalia|elvira|ximena|sabina|lucia|francisca|conchita|marisol|google español/i;
+function pitchFor(v, base){
+  if (voicePref !== "man") return base;
+  return v && MALE_RE.test(v.name) && !FEMALE_RE.test(v.name) ? base : 0.62;
+}
+// Some phone voices never report which word they are on; then estimate it from the clock so the board keeps up
+let estTimer = 0, estStart = 0, lastBoundary = 0;
+function startEstimate(total, rate){
+  clearInterval(estTimer); estStart = Date.now(); lastBoundary = 0;
+  const cps = 14.5 * rate;
+  estTimer = setInterval(() => {
+    if (!speaking) return;
+    if (lastBoundary && Date.now() - lastBoundary < 1500) return;
+    const ci = Math.min(total - 1, Math.floor((Date.now() - estStart) / 1000 * cps));
+    highlight(ci); onProgress(ci / total);
+  }, 300);
+}
+function stopEstimate(){ clearInterval(estTimer); estTimer = 0; }
 function pickVoice(){
   const want = lang === "es" ? /^es(-|_)/i : /^en(-|_)US/i;
   const vs = speechSynthesis.getVoices().filter(v => want.test(v.lang));
@@ -1028,9 +1048,9 @@ function browserVoice(text){
   const u = new SpeechSynthesisUtterance(text);
   const v = pickVoice(); if (v) u.voice = v;
   u.lang = lang === "es" ? "es-US" : "en-US";
-  u.rate = level === "little" ? 0.95 : 1.03; u.pitch = 1.12;
-  u.onstart = () => { setSpeaking(true); onProgress(0); };
-  u.onboundary = e => { highlight(e.charIndex); onProgress(e.charIndex / text.length); };
+  u.rate = level === "little" ? 0.95 : 1.03; u.pitch = pitchFor(v, 1.12);
+  u.onstart = () => { setSpeaking(true); onProgress(0); startEstimate(text.length, u.rate); };
+  u.onboundary = e => { lastBoundary = Date.now(); highlight(e.charIndex); onProgress(e.charIndex / text.length); };
   u.onend = finish;
   speechSynthesis.speak(u);
   setTimeout(() => { if (!speaking) onProgress(1); }, 2500);
@@ -1061,7 +1081,7 @@ async function sayShort(text){
 function browserShort(text){
   if (!("speechSynthesis" in window) || !text) return;
   const u = new SpeechSynthesisUtterance(text); const v = pickVoice(); if (v) u.voice = v;
-  u.lang = lang === "es" ? "es-US" : "en-US"; u.rate = 1; u.pitch = 1.12;
+  u.lang = lang === "es" ? "es-US" : "en-US"; u.rate = 1; u.pitch = pitchFor(v, 1.12);
   speechSynthesis.cancel(); speechSynthesis.speak(u);
 }
 if ("speechSynthesis" in window) speechSynthesis.onvoiceschanged = () => {};
