@@ -211,6 +211,11 @@ body.present .caption{font-size:clamp(22px,2vw,30px)}
         <button id="vWoman">🔊 Woman</button>
         <button id="vMute" aria-label="Mute: no voice, read the words">🔇 Mute</button>
       </div>
+      <div class="levels voices" role="group" aria-label="Voice speed">
+        <button id="sSlow">🐢 Slower</button>
+        <button id="sNormal" class="on">▶ Normal</button>
+        <button id="sFast">🐇 Faster</button>
+      </div>
       <div class="levels" role="group" aria-label="Choose your grade">
         <button id="lvLittle" class="on"></button>
         <button id="lvBig"></button>
@@ -253,6 +258,7 @@ body.present .caption{font-size:clamp(22px,2vw,30px)}
       <div class="read" id="read"></div>
       <div class="playrow hide" id="playrow">
         <button class="btn" id="again"></button>
+        <button class="btn hide" id="pause">⏸ Pause</button>
         <button class="btn hide" id="stop"></button>
         <button class="btn" id="print"></button>
         <div class="thumbs" id="thumbs"><span id="helpful"></span><button id="up" aria-label="Yes">👍</button><button id="down" aria-label="No">👎</button></div>
@@ -316,7 +322,7 @@ const T = {
     another: "Ask another question anytime!", tapAgain: "Tap Ask to try again.", watch: "Watch the board!", start: "Ask a question to start!",
     step: "Step", legend: "🔤 What these mean", mathWorks: "🧮 How the math works", welcomeTitle: "Hi, I'm Mr. Paul! 👋",
     welcomeText: "Ask me a question with your voice or by typing. I'll explain it, draw it on my smart board, and then we'll do a quick quiz together!",
-    again: "🔊 Hear it again", stop: "⏹ Stop", print: "🖨️ Print", helpful: "Helpful?", thanks: "Thanks! 💛",
+    again: "🔊 Hear it again", stop: "⏹ Stop", pause: "⏸ Pause", resume: "▶ Continue", print: "🖨️ Print", helpful: "Helpful?", thanks: "Thanks! 💛",
     hImg: "📷 What it looks like", hWow: "⭐ Surprise Fact!", hTry: "🧪 Try It at Home", hQuiz: "✏️ Quick Check",
     gotIt: "🎉 You got it! ", goodTry: "Good try! Pick another one.", answerKey: "Answer: ",
     hDeep: "🔍 Keep learning!", askAbout: "💬 Ask about this", tellMore: "➕ Tell me more", orTry: "Or try one of these:",
@@ -346,7 +352,7 @@ const T = {
     another: "¡Haz otra pregunta cuando quieras!", tapAgain: "Toca Preguntar para intentar otra vez.", watch: "¡Mira la pizarra!", start: "¡Haz una pregunta para empezar!",
     step: "Paso", legend: "🔤 Qué significan", mathWorks: "🧮 Cómo funcionan las matemáticas", welcomeTitle: "¡Hola, soy Mr. Paul! 👋",
     welcomeText: "Hazme una pregunta con tu voz o escribiendo. Te la explico, la dibujo en mi pizarra, ¡y luego hacemos un juego de preguntas!",
-    again: "🔊 Escuchar otra vez", stop: "⏹ Parar", print: "🖨️ Imprimir", helpful: "¿Te ayudó?", thanks: "¡Gracias! 💛",
+    again: "🔊 Escuchar otra vez", stop: "⏹ Parar", pause: "⏸ Pausa", resume: "▶ Seguir", print: "🖨️ Imprimir", helpful: "¿Te ayudó?", thanks: "¡Gracias! 💛",
     hImg: "📷 Así se ve", hWow: "⭐ ¡Dato sorpresa!", hTry: "🧪 Pruébalo en casa", hQuiz: "✏️ Repaso rápido",
     gotIt: "🎉 ¡Muy bien! ", goodTry: "¡Buen intento! Elige otra.", answerKey: "Respuesta: ",
     hDeep: "🔍 ¡Sigue aprendiendo!", askAbout: "💬 Pregunta sobre esto", tellMore: "➕ Cuéntame más", orTry: "O prueba una de estas:",
@@ -384,7 +390,7 @@ function applyText(){
   $("present").textContent = document.body.classList.contains("present") ? L.presentOff : L.present;
   $("q").placeholder = L.placeholder; $("go").textContent = L.ask;
   if (!busy) $("hint").textContent = SR ? L.hint : L.noMic;
-  $("again").textContent = L.again; $("stop").textContent = L.stop; $("print").textContent = L.print; $("helpful").textContent = L.helpful;
+  $("again").textContent = L.again; $("stop").textContent = L.stop; $("pause").textContent = L.pause; $("print").textContent = L.print; $("helpful").textContent = L.helpful;
   $("hImg").textContent = L.hImg; $("hWow").textContent = L.hWow; $("hTry").textContent = L.hTry; $("hQuiz").textContent = L.hQuiz;
   $("hDeep").textContent = L.hDeep; $("askAbout").textContent = L.askAbout; $("tellMore").textContent = L.tellMore; $("orTry").textContent = L.orTry;
   $("notice").textContent = L.notice; $("thinkText").textContent = L.thinking;
@@ -434,7 +440,7 @@ document.addEventListener("fullscreenchange", () => { if (!document.fullscreenEl
 
 /* ---------- audio unlock (must happen on a tap) ---------- */
 function unlock(){
-  try { if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === "suspended") ctx.resume(); } catch(e) {}
+  try { if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === "suspended" && !paused) ctx.resume(); } catch(e) {}
   try { if ("speechSynthesis" in window) { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); } } catch(e) {}
 }
 
@@ -946,9 +952,10 @@ function highlight(ci){
   if (ci > lastCi) { lastCi = ci; syncBoard(ci); }
 }
 function clearHighlight(){ words.forEach(w => w.el.classList.remove("on","done")); $("read").classList.remove("speaking"); }
-function setSpeaking(on){ speaking = on; $("read").classList.toggle("speaking", on); $("stop").classList.toggle("hide", !on); $("again").classList.toggle("hide", on); }
+function setSpeaking(on){ speaking = on; $("read").classList.toggle("speaking", on); $("stop").classList.toggle("hide", !on); $("again").classList.toggle("hide", on);  pauseLabel(); }
 function finish(){ stopEstimate(); setSpeaking(false); words.forEach(w => { w.el.classList.remove("on"); w.el.classList.add("done"); }); onProgress(1); }
 function stopVoice(){
+  unpause();
   cancelAnimationFrame(raf); stopEstimate();
   try { if (shortNode) shortNode.stop(); } catch(e) {}
   shortNode = null; shortId++;
@@ -958,6 +965,19 @@ function stopVoice(){
   if (speaking) { setSpeaking(false); clearHighlight(); }
 }
 $("stop").onclick = () => { stopVoice(); onProgress(1); };
+// Pause and Continue: the voice (and the pictures that follow it) wait right where they are.
+var paused = false;
+function pauseLabel(){ const b = $("pause"); if (!b) return; const L = (typeof t === "function" && t()) || {}; b.textContent = paused ? (L.resume || "▶ Continue") : (L.pause || "⏸ Pause"); b.classList.toggle("hide", !speaking); b.classList.toggle("on", paused); }
+function unpause(){ if (!paused) return; paused = false; try { if (ctx) ctx.resume(); } catch(e) {} try { speechSynthesis.resume(); } catch(e) {} pauseLabel(); }
+$("pause").onclick = () => {
+  if (!speaking) return;
+  if (paused) { unpause(); return; }
+  paused = true;
+  try { if (ctx) ctx.suspend(); } catch(e) {}
+  try { speechSynthesis.pause(); } catch(e) {}
+  pauseLabel();
+};
+
 $("again").onclick = () => { unlock(); if (lastAudio) playBuffer(lastAudio); else speak(); };
 
 async function speak(){
@@ -972,7 +992,7 @@ async function prepareAudio(){
   lastAudio = null; lastProgress = 0;
   if (!voiceOff && ctx) {
     try {
-      const r = await fetch("/api/speak", { method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify({ text: speech, voice: voicePref }) });
+      const r = await fetch("/api/speak", { method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify({ text: speech, voice: voicePref, speed: speedPref }) });
       if (r.status === 501) voiceOff = true;
       else if (r.ok) {
         const d = await r.json();
@@ -1017,6 +1037,21 @@ $("vMan").onclick = () => { setVoicePref("man"); unlock(); sayShort(t().hello); 
 $("vWoman").onclick = () => { setVoicePref("woman"); unlock(); sayShort(t().hello); };
 // Mute: no voice at all; the words and pictures still appear in full.
 $("vMute").onclick = () => { const was = speaking; setVoicePref("mute"); try { if (typeof shortNode !== "undefined" && shortNode) shortNode.stop(); } catch(e) {} try { speechSynthesis.cancel(); } catch(e) {} if (was) { stopVoice(); finish(); } };
+/* ---------- voice speed: Slower, Normal, Faster ---------- */
+let speedPref = "normal";
+try { const s = localStorage.getItem("mpc_speed"); if (s === "slow" || s === "fast") speedPref = s; } catch(e) {}
+function setSpeed(p){
+  if (p !== speedPref) lastAudio = null;   // re-fetch the voice at the new speed
+  speedPref = p;
+  $("sSlow").classList.toggle("on", p === "slow"); $("sNormal").classList.toggle("on", p === "normal"); $("sFast").classList.toggle("on", p === "fast");
+  try { localStorage.setItem("mpc_speed", p); } catch(e) {}
+}
+function speedMul(){ return speedPref === "slow" ? 0.84 : speedPref === "fast" ? 1.16 : 1; }
+function voiceRate(){ return speedPref === "slow" ? 0.82 : speedPref === "fast" ? 1.14 : 0.98; }
+$("sSlow").onclick = () => { setSpeed("slow"); unlock(); sayShort("Slower speed."); };
+$("sNormal").onclick = () => { setSpeed("normal"); unlock(); sayShort("Normal speed."); };
+$("sFast").onclick = () => { setSpeed("fast"); unlock(); sayShort("Faster speed."); };
+setTimeout(() => setSpeed(speedPref), 0);
 
 
 const MALE_RE = /\bmale\b|andrew|brian|christopher|eric|guy|roger|steffan|aaron|evan|tom|nathan|alex|daniel|david|mark|fred|jorge|diego|pablo|juan|carlos|alvaro|raul|enrique|tomas|gerardo|jose/i, FEMALE_RE = /female|aria|jenny|ava|emma|michelle|ana\b|samantha|zira|allison|susan|joanna|nicky|google us english|paulina|monica|helena|laura|dalia|elvira|ximena|sabina|lucia|francisca|conchita|marisol|google español/i;
@@ -1052,7 +1087,7 @@ function browserVoice(text){
   const u = new SpeechSynthesisUtterance(text);
   const v = pickVoice(); if (v) u.voice = v;
   u.lang = lang === "es" ? "es-US" : "en-US";
-  u.rate = level === "little" ? 0.95 : 1.03; u.pitch = pitchFor(v, 1.12);
+  u.rate = (level === "little" ? 0.95 : 1.03) * speedMul(); u.pitch = pitchFor(v, 1.12);
   u.onstart = () => { setSpeaking(true); onProgress(0); startEstimate(text.length, u.rate); };
   u.onboundary = e => { lastBoundary = Date.now(); highlight(e.charIndex); onProgress(e.charIndex / text.length); };
   u.onend = finish;
@@ -1068,7 +1103,7 @@ async function sayShort(text){
   try { speechSynthesis.cancel(); } catch(e) {}
   if (!voiceOff && ctx) {
     try {
-      const r = await fetch("/api/speak", { method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify({ text, voice: voicePref }) });
+      const r = await fetch("/api/speak", { method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify({ text, voice: voicePref, speed: speedPref }) });
       if (r.status === 501) voiceOff = true;
       else if (r.ok) {
         const d = await r.json();
@@ -1087,7 +1122,7 @@ function browserShort(text){
   if (voicePref === "mute") return;
   if (!("speechSynthesis" in window) || !text) return;
   const u = new SpeechSynthesisUtterance(text); const v = pickVoice(); if (v) u.voice = v;
-  u.lang = lang === "es" ? "es-US" : "en-US"; u.rate = 1; u.pitch = pitchFor(v, 1.12);
+  u.lang = lang === "es" ? "es-US" : "en-US"; u.rate = speedMul(); u.pitch = pitchFor(v, 1.12);
   speechSynthesis.cancel(); speechSynthesis.speak(u);
 }
 if ("speechSynthesis" in window) speechSynthesis.onvoiceschanged = () => {};
