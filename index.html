@@ -209,6 +209,7 @@ body.present .caption{font-size:clamp(22px,2vw,30px)}
       <div class="levels voices" role="group" aria-label="Choose a voice">
         <button id="vMan" class="on">🔊 Man</button>
         <button id="vWoman">🔊 Woman</button>
+        <button id="vMute" aria-label="Mute: no voice, read the words">🔇 Mute</button>
       </div>
       <div class="levels" role="group" aria-label="Choose your grade">
         <button id="lvLittle" class="on"></button>
@@ -966,6 +967,7 @@ async function speak(){
 }
 // Gets the recorded-voice audio (or null, meaning use the browser's voice)
 async function prepareAudio(){
+  if (voicePref === "mute") return null;
   if (!speech) return null;
   lastAudio = null; lastProgress = 0;
   if (!voiceOff && ctx) {
@@ -986,6 +988,7 @@ async function prepareAudio(){
   return null;
 }
 function playBuffer(a){
+  if (voicePref === "mute") { finish(); return; }
   stopVoice();
   if (!ctx) return browserVoice(speech);
   srcNode = ctx.createBufferSource(); srcNode.buffer = a.buf; srcNode.connect(ctx.destination);
@@ -1004,14 +1007,16 @@ function playBuffer(a){
 }
 
 let voicePref = "man";
-try { if (localStorage.getItem("mpc_voice") === "woman") voicePref = "woman"; } catch(e) {}
+try { const v = localStorage.getItem("mpc_voice"); if (v === "woman" || v === "mute") voicePref = v; } catch(e) {}
 function setVoicePref(p){
   voicePref = p;
-  $("vMan").classList.toggle("on", p === "man"); $("vWoman").classList.toggle("on", p === "woman");
+  $("vMan").classList.toggle("on", p === "man"); $("vWoman").classList.toggle("on", p === "woman"); $("vMute").classList.toggle("on", p === "mute");
   try { localStorage.setItem("mpc_voice", p); } catch(e) {}
 }
 $("vMan").onclick = () => { setVoicePref("man"); unlock(); sayShort(t().hello); };
 $("vWoman").onclick = () => { setVoicePref("woman"); unlock(); sayShort(t().hello); };
+// Mute: no voice at all; the words and pictures still appear in full.
+$("vMute").onclick = () => { const was = speaking; setVoicePref("mute"); try { if (typeof shortNode !== "undefined" && shortNode) shortNode.stop(); } catch(e) {} try { speechSynthesis.cancel(); } catch(e) {} if (was) { stopVoice(); finish(); } };
 
 
 const MALE_RE = /\bmale\b|andrew|brian|christopher|eric|guy|roger|steffan|aaron|evan|tom|nathan|alex|daniel|david|mark|fred|jorge|diego|pablo|juan|carlos|alvaro|raul|enrique|tomas|gerardo|jose/i, FEMALE_RE = /female|aria|jenny|ava|emma|michelle|ana\b|samantha|zira|allison|susan|joanna|nicky|google us english|paulina|monica|helena|laura|dalia|elvira|ximena|sabina|lucia|francisca|conchita|marisol|google español/i;
@@ -1041,6 +1046,7 @@ function pickVoice(){
   return natural.find(fits) || vs.find(fits) || natural[0] || vs[0] || null;
 }
 function browserVoice(text){
+  if (voicePref === "mute") { finish(); return; }
   if (!("speechSynthesis" in window)) { onProgress(1); return; }
   stopVoice();
   const u = new SpeechSynthesisUtterance(text);
@@ -1055,6 +1061,7 @@ function browserVoice(text){
 }
 // Short lines (hello, quiz feedback, tapped words) use the same ElevenLabs voice, so phones match desktop
 async function sayShort(text){
+  if (voicePref === "mute") return;
   if (!text) return;
   const id = ++shortId;
   try { if (shortNode) shortNode.stop(); } catch(e) {}
@@ -1077,6 +1084,7 @@ async function sayShort(text){
   browserShort(text);
 }
 function browserShort(text){
+  if (voicePref === "mute") return;
   if (!("speechSynthesis" in window) || !text) return;
   const u = new SpeechSynthesisUtterance(text); const v = pickVoice(); if (v) u.voice = v;
   u.lang = lang === "es" ? "es-US" : "en-US"; u.rate = 1; u.pitch = pitchFor(v, 1.12);
