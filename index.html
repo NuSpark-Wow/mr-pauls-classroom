@@ -191,6 +191,10 @@ body.present .caption{font-size:clamp(22px,2vw,30px)}
   .opt{min-height:auto;padding:8px}
   .print-only{display:block !important}
 }
+#pause.ready{animation:readyGlow 1.6s ease-in-out infinite;border-color:#a3e635;color:#2f7d0f}
+@keyframes readyGlow{0%,100%{box-shadow:0 0 0 0 rgba(163,230,53,0)}50%{box-shadow:0 0 0 6px rgba(163,230,53,.4)}}
+#views button.fresh{animation:readyGlow 1.2s ease-in-out 3}
+@media (prefers-reduced-motion:reduce){#pause.ready,#views button.fresh{animation:none;outline:2px solid #a3e635}}
 </style>
 <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
 <script defer src="/_vercel/insights/script.js"></script>
@@ -599,6 +603,9 @@ function addStep(s){
   $("svg").appendChild(g); groups.push(g);
   $("thinking").classList.remove("on");
   updateCtrls();
+  const tab = document.querySelectorAll("#views button")[groups.length - 1];
+  if (tab) { tab.classList.add("fresh"); setTimeout(() => tab.classList.remove("fresh"), 4000); }   // its view tab glows as it becomes ready
+  if (typeof paused !== "undefined" && paused) { readyWhilePaused = true; pauseLabel(); }   // paused: the Continue button lights up
   if (!narrStarted) { if (!shown) revealNext(); startNarration(); }
   else syncBoard(lastCi);
 }
@@ -967,7 +974,11 @@ function stopVoice(){
 $("stop").onclick = () => { stopVoice(); onProgress(1); };
 // Pause and Continue: the voice (and the pictures that follow it) wait right where they are.
 var paused = false;
-function pauseLabel(){ const b = $("pause"); if (!b) return; const L = (typeof t === "function" && t()) || {}; b.textContent = paused ? (L.resume || "▶ Continue") : (L.pause || "⏸ Pause"); b.classList.toggle("hide", !speaking); b.classList.toggle("on", paused); }
+var readyWhilePaused = false;
+function pauseLabel(){ const b = $("pause"); if (!b) return; const L = (typeof t === "function" && t()) || {}; if (!paused) readyWhilePaused = false;
+  const c = (L.resume || "▶ Continue");
+  b.textContent = paused ? (readyWhilePaused ? c + " · diagram ready" : c) : (L.pause || "⏸ Pause");
+  b.classList.toggle("hide", !speaking); b.classList.toggle("on", paused); b.classList.toggle("ready", paused && readyWhilePaused); }
 function unpause(){ if (!paused) return; paused = false; try { if (ctx) ctx.resume(); } catch(e) {} try { speechSynthesis.resume(); } catch(e) {} pauseLabel(); }
 $("pause").onclick = () => {
   if (!speaking) return;
