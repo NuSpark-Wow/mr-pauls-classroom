@@ -50,6 +50,40 @@ button{font-family:inherit;cursor:pointer}
 .go.ready{animation:glow 1s infinite alternate}
 @keyframes glow{to{background:#4b8df5}}
 .starters{display:flex;flex-wrap:wrap;gap:8px;margin:12px 2px 16px}
+/* three paths, subjects, view switch, help buttons, practice, parent note */
+.paths{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 12px}
+.paths button{border:3px solid var(--line);background:var(--card);border-radius:18px;padding:12px 10px;text-align:center;font-family:inherit;color:var(--ink);box-shadow:0 3px 0 rgba(80,60,20,.08)}
+.paths button b{display:block;font-size:18px;font-weight:900;margin-top:2px}
+.paths button small{display:block;font-size:13px;color:var(--soft);font-weight:700;margin-top:2px}
+.paths button .pi{font-size:28px;line-height:1}
+.paths button.on{border-color:var(--blue);background:#eef4ff}
+@media (max-width:560px){.paths button b{font-size:15px}.paths button small{font-size:12px}.paths button .pi{font-size:24px}}
+.subjects{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 2px 12px}
+.subjects .sl{font-weight:800;color:var(--soft);font-size:14px;margin-right:4px}
+.chip.on{border-color:var(--blue);background:var(--blue);color:#fff}
+.mic.cam.pulse{animation:camPulse 1.6s ease-in-out infinite}
+@keyframes camPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.study{margin:0 0 14px}
+.study .sl{font-weight:900;color:var(--soft);font-size:13px;letter-spacing:.06em;text-transform:uppercase;margin:6px 0 8px}
+.study .row2{display:flex;flex-wrap:wrap;gap:8px}
+.study .views .chip{font-size:16px;padding:10px 16px}
+.study .chip.on{background:var(--blue)!important;border-color:var(--blue)!important;color:#fff!important}
+@media (max-width:640px){.study .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.study .row2 .chip{text-align:left;padding:10px 12px;font-size:15px}}
+.checkbox{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+.checkbox textarea{flex:1 1 260px;min-height:70px;border:3px solid var(--line);border-radius:14px;padding:10px 12px;font:inherit;font-size:17px;font-weight:700;color:var(--ink)}
+.checkfb{margin-top:8px;font-weight:800;font-size:17px;line-height:1.45}
+.pq{border:2px solid var(--line);border-radius:14px;padding:12px;margin:0 0 10px}
+.pq .pt{font-weight:800;font-size:18px;margin-bottom:8px}
+.pq .pr{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.pq input{flex:1 1 140px;min-width:0;width:auto;box-sizing:border-box;border:3px solid var(--line);border-radius:12px;padding:10px 12px;font:inherit;font-size:18px;font-weight:800}
+.pq .pf{margin-top:8px;font-weight:800}
+.pq.right{border-color:var(--green);background:#f0fbf3}
+.pscore{font-weight:900;color:var(--green);margin-top:4px}
+.notebtn{margin-top:14px}
+.note h4{margin:12px 0 6px;font-size:16px}
+.note ul{margin:0 0 6px 18px;padding:0}
+.note li{margin:3px 0}
+@media print{body.print-note *{visibility:hidden}body.print-note #noteCard,body.print-note #noteCard *{visibility:visible}body.print-note #noteCard{position:absolute;left:0;top:0;width:100%;box-shadow:none}body.print-note #noteCard .noprint{display:none}}
 .chip{border:2px solid var(--line);background:var(--card);border-radius:999px;padding:8px 14px;font-weight:800;font-size:15px;color:var(--ink)}
 .chip:hover{border-color:var(--blue);color:var(--blue)}
 
@@ -255,6 +289,12 @@ body.present .caption{font-size:clamp(22px,2vw,30px)}
     </div>
   </div>
 
+  <div class="paths" id="paths" role="group" aria-label="Choose how to learn">
+    <button data-mode="curious" class="on"><span class="pi">🤔</span><b id="pCur"></b><small id="pCurS"></small></button>
+    <button data-mode="skill"><span class="pi">📘</span><b id="pSkill"></b><small id="pSkillS"></small></button>
+    <button data-mode="work"><span class="pi">📸</span><b id="pWork"></b><small id="pWorkS"></small></button>
+  </div>
+  <div class="subjects hide" id="subjects"></div>
   <div class="ask">
     <button class="mic" id="mic" aria-label="Talk to Mr. Paul">🎤</button>
     <button class="mic cam" id="cam" aria-label="Add a picture">📷</button>
@@ -323,7 +363,31 @@ body.present .caption{font-size:clamp(22px,2vw,30px)}
     <p class="print-only" id="answerKey" style="font-size:13px;color:#57606a;margin-top:10px"></p>
   </div>
 
+  <div class="card practice hide" id="practiceCard">
+    <h3 id="hPrac"></h3>
+    <div id="pList"></div>
+    <div class="pscore" id="pScore"></div>
+  </div>
+
   <div class="card deeper hide" id="deepCard">
+    <div class="study">
+      <div class="sl" id="viewsLabel"></div>
+      <div class="row2 views" id="views">
+        <button class="chip" data-a="idea" id="vIdea"></button>
+        <button class="chip" data-a="real" id="vReal"></button>
+        <button class="chip" data-a="home" id="vHome"></button>
+      </div>
+      <div class="sl" id="helpsLabel"></div>
+      <div class="row2" id="helps">
+        <button class="chip" data-a="another" id="hAnother"></button>
+        <button class="chip" data-a="walk" id="hWalk"></button>
+        <button class="chip" data-a="hint" id="hHint"></button>
+        <button class="chip" data-a="practice" id="hPractice"></button>
+        <button class="chip" data-a="check" id="hCheck"></button>
+      </div>
+      <div class="checkbox hide" id="checkBox"><textarea id="checkText"></textarea><button class="btn" id="checkGo"></button></div>
+      <div class="checkfb" id="checkFb" aria-live="polite"></div>
+    </div>
     <h3 id="hDeep"></h3>
     <div class="big-btns">
       <button class="bigbtn ask-about" id="askAbout"></button>
@@ -337,6 +401,9 @@ body.present .caption{font-size:clamp(22px,2vw,30px)}
     <div class="sub" id="orTry"></div>
     <div class="row" id="deeper"></div>
   </div>
+
+  <button class="btn notebtn hide" id="noteBtn"></button>
+  <div class="card note hide" id="noteCard" aria-live="polite"></div>
 
   <p class="notice" id="notice"></p>
 </div>
@@ -360,7 +427,7 @@ const T = {
     another: "Ask another question anytime!", tapAgain: "Tap Ask to try again.", watch: "Watch the board!", start: "Ask a question to start!",
     step: "Step", legend: "🔤 What these mean", mathWorks: "🧮 How the math works", welcomeTitle: "Hi, I'm Mr. Paul! 👋",
     welcomeText: "Ask me a question with your voice or by typing. I'll explain it, draw it on my smart board, and then we'll do a quick quiz together!",
-    again: "🔊 Hear it again", stop: "⏹ Stop", pause: "⏸ Pause", resume: "▶ Continue", startOver: "⟲ Start over", explainBtn: "📖 Explain this picture", hideExplain: "📖 Hide explanation", hideBtn: "Hide explanation", nextReady: "next step ready", explaining: "Mr. Paul is getting the explanation ready… just a few seconds!", explainFail: "Oops, that didn't work. Tap the button again in a moment.", aboutPic: "About this picture", eachWord: "What each word means", whyMatters: "Why it matters: ", print: "🖨️ Print", helpful: "Helpful?", thanks: "Thanks! 💛",
+    again: "🔊 Hear it again", stop: "⏹ Stop", pause: "⏸ Pause", resume: "▶ Continue", startOver: "⟲ Start over", pCur: "I'm curious", pCurS: "Ask anything", pSkill: "Learn a skill", pSkillS: "A lesson + practice", pWork: "Help with my work", pWorkS: "Hints, not answers", phSkill: "What skill? Like: adding fractions", phWork: "Type the problem, or tap 📷 to snap it", pickSubject: "Subject:", subjects: ["Math", "Reading", "Writing", "Science", "Social Studies", "Spelling & Grammar"], viewsLabel: "See it another way", vIdea: "💡 The idea", vReal: "🌎 Real life", vHome: "🏠 Try it at home", helpsLabel: "Need more help?", hAnother: "🔄 Another way", hWalk: "🪜 Walk me through it", hHint: "💬 Give me a hint", hPractice: "✏️ Practice problems", hCheck: "✅ Check my work", checkPh: "Type your answer and how you got it…", checkGo: "Check it", checking: "Mr. Paul is checking…", vRight: "✅ You got it! ", vPartly: "🟡 Almost! ", vNot: "🔁 Not yet. ", checkFail: "Oops, couldn't check right now. Try again in a moment.", hPrac: "✏️ Practice time", pCheck: "Check", pHintB: "Hint", pShow: "Show answer", pRight: "✅ Yes! Great job!", pWrong: "Not quite. Try again, or tap Hint.", pAns: "Answer: ", pScore: (r, n) => `${r} of ${n} right`, pPh: "Your answer", noteBtn: "📝 Note for my grown-up", noteTitle: "Today's learning with Mr. Paul", noteTopics: "What we worked on", noteNext: "Try next", notePrint: "🖨 Print", noteCopy: "📋 Copy", noteCopied: "Copied!", noteClose: "Close", modeNames: { curious: "Curious question", skill: "Skill lesson", work: "Help with work" }, actNames: { idea: "the idea", real: "real life", home: "try it at home", another: "another way", walk: "step by step", hint: "a hint", practice: "practice" }, notePrac: "Practice", noteChecks: "Work checked", noteHints: "Hints used", noteNone: "none", explainBtn: "📖 Explain this picture", hideExplain: "📖 Hide explanation", hideBtn: "Hide explanation", nextReady: "next step ready", explaining: "Mr. Paul is getting the explanation ready… just a few seconds!", explainFail: "Oops, that didn't work. Tap the button again in a moment.", aboutPic: "About this picture", eachWord: "What each word means", whyMatters: "Why it matters: ", print: "🖨️ Print", helpful: "Helpful?", thanks: "Thanks! 💛",
     hImg: "📷 What it looks like", hWow: "⭐ Surprise Fact!", hTry: "🧪 Try It at Home", hQuiz: "✏️ Quick Check",
     gotIt: "🎉 You got it! ", goodTry: "Good try! Pick another one.", answerKey: "Answer: ",
     hDeep: "🔍 Keep learning!", askAbout: "💬 Ask about this", tellMore: "➕ Tell me more", orTry: "Or try one of these:",
@@ -390,7 +457,7 @@ const T = {
     another: "¡Haz otra pregunta cuando quieras!", tapAgain: "Toca Preguntar para intentar otra vez.", watch: "¡Mira la pizarra!", start: "¡Haz una pregunta para empezar!",
     step: "Paso", legend: "🔤 Qué significan", mathWorks: "🧮 Cómo funcionan las matemáticas", welcomeTitle: "¡Hola, soy Mr. Paul! 👋",
     welcomeText: "Hazme una pregunta con tu voz o escribiendo. Te la explico, la dibujo en mi pizarra, ¡y luego hacemos un juego de preguntas!",
-    again: "🔊 Escuchar otra vez", stop: "⏹ Parar", pause: "⏸ Pausa", resume: "▶ Seguir", startOver: "⟲ Empezar de nuevo", explainBtn: "📖 Explícame el dibujo", hideExplain: "📖 Ocultar explicación", hideBtn: "Ocultar explicación", nextReady: "siguiente paso listo", explaining: "Mr. Paul está preparando la explicación… ¡solo unos segundos!", explainFail: "Uy, no funcionó. Toca el botón otra vez en un momento.", aboutPic: "Sobre este dibujo", eachWord: "Qué significa cada palabra", whyMatters: "Por qué importa: ", print: "🖨️ Imprimir", helpful: "¿Te ayudó?", thanks: "¡Gracias! 💛",
+    again: "🔊 Escuchar otra vez", stop: "⏹ Parar", pause: "⏸ Pausa", resume: "▶ Seguir", startOver: "⟲ Empezar de nuevo", pCur: "Tengo curiosidad", pCurS: "Pregunta lo que sea", pSkill: "Aprender algo", pSkillS: "Lección + práctica", pWork: "Ayuda con mi tarea", pWorkS: "Pistas, no respuestas", phSkill: "¿Qué quieres aprender? Ej.: sumar fracciones", phWork: "Escribe el problema, o toca 📷 para tomarle foto", pickSubject: "Materia:", subjects: ["Matemáticas", "Lectura", "Escritura", "Ciencias", "Estudios sociales", "Ortografía y gramática"], viewsLabel: "Míralo de otra forma", vIdea: "💡 La idea", vReal: "🌎 En la vida real", vHome: "🏠 Pruébalo en casa", helpsLabel: "¿Necesitas más ayuda?", hAnother: "🔄 Otra forma", hWalk: "🪜 Paso a paso", hHint: "💬 Dame una pista", hPractice: "✏️ Problemas de práctica", hCheck: "✅ Revisa mi trabajo", checkPh: "Escribe tu respuesta y cómo llegaste a ella…", checkGo: "Revisar", checking: "Mr. Paul está revisando…", vRight: "✅ ¡Lo lograste! ", vPartly: "🟡 ¡Casi! ", vNot: "🔁 Todavía no. ", checkFail: "Uy, no pude revisar ahora. Intenta otra vez en un momento.", hPrac: "✏️ Hora de practicar", pCheck: "Revisar", pHintB: "Pista", pShow: "Ver respuesta", pRight: "✅ ¡Sí! ¡Muy bien!", pWrong: "Casi. Intenta otra vez o toca Pista.", pAns: "Respuesta: ", pScore: (r, n) => `${r} de ${n} correctas`, pPh: "Tu respuesta", noteBtn: "📝 Nota para mi adulto", noteTitle: "Lo que aprendimos hoy con Mr. Paul", noteTopics: "En qué trabajamos", noteNext: "Para la próxima", notePrint: "🖨 Imprimir", noteCopy: "📋 Copiar", noteCopied: "¡Copiado!", noteClose: "Cerrar", modeNames: { curious: "Pregunta curiosa", skill: "Lección", work: "Ayuda con tarea" }, actNames: { idea: "la idea", real: "vida real", home: "pruébalo en casa", another: "otra forma", walk: "paso a paso", hint: "una pista", practice: "práctica" }, notePrac: "Práctica", noteChecks: "Trabajo revisado", noteHints: "Pistas usadas", noteNone: "ninguno", explainBtn: "📖 Explícame el dibujo", hideExplain: "📖 Ocultar explicación", hideBtn: "Ocultar explicación", nextReady: "siguiente paso listo", explaining: "Mr. Paul está preparando la explicación… ¡solo unos segundos!", explainFail: "Uy, no funcionó. Toca el botón otra vez en un momento.", aboutPic: "Sobre este dibujo", eachWord: "Qué significa cada palabra", whyMatters: "Por qué importa: ", print: "🖨️ Imprimir", helpful: "¿Te ayudó?", thanks: "¡Gracias! 💛",
     hImg: "📷 Así se ve", hWow: "⭐ ¡Dato sorpresa!", hTry: "🧪 Pruébalo en casa", hQuiz: "✏️ Repaso rápido",
     gotIt: "🎉 ¡Muy bien! ", goodTry: "¡Buen intento! Elige otra.", answerKey: "Respuesta: ",
     hDeep: "🔍 ¡Sigue aprendiendo!", askAbout: "💬 Pregunta sobre esto", tellMore: "➕ Cuéntame más", orTry: "O prueba una de estas:",
@@ -436,6 +503,7 @@ function applyText(){
   if (rec) rec.lang = lang === "es" ? "es-US" : "en-US";
   renderStarters();
   if ($("startOver")) $("startOver").textContent = L.startOver;
+  if (typeof pathText === "function") pathText();
   if (typeof studyUI === "function") studyUI();
   if (typeof explainFor !== "undefined" && explainFor) closeExplain();   // the explanation was in the other language
 }
@@ -596,11 +664,11 @@ const norm = s => s.toLowerCase().replace(/[?!.¿¡,]+/g, " ").replace(/\s+/g, "
 async function fetchPart(part, question, context, opts){
   let r;
   if (!context && !opts.more && !opts.image) {
-    const url = `/api/ask?part=${part}&level=${level}&lang=${lang}&v=7&q=${encodeURIComponent(norm(question))}`;
+    const url = `/api/ask?part=${part}&level=${level}&lang=${lang}&v=7&q=${encodeURIComponent(norm(question))}${curMode !== "curious" ? `&mode=${curMode}&subject=${encodeURIComponent(curSubject)}` : ""}`;
     r = await fetch(url);
   } else {
     r = await fetch("/api/ask", { method:"POST", headers:{ "content-type":"application/json" },
-      body: JSON.stringify({ part, question, level, lang, context: context || "", more: !!opts.more, prev: opts.prev || "", image: opts.image || "" }) });
+      body: JSON.stringify({ part, question, level, lang, context: context || "", more: !!opts.more, prev: opts.prev || "", image: opts.image || "", mode: curMode, subject: curSubject, action: opts.action || "" }) });
   }
   const d = await r.json().catch(() => null);
   return { ok: r.ok, status: r.status, d };
@@ -708,7 +776,7 @@ async function ask(text, context, opts){
   try {
     if (!data) throw new Error(reason);
     if (opts.image) { clearPhoto(); opts.boardTitle = data.title || "the picture"; }
-    lesson = data; render();
+    lesson = data; lesson._action = opts.action || ""; render(); logLesson(lesson, opts);
     if (opts.scroll) toBoard();
     $("hint").textContent = t().another;
     track("lesson", { topic: String(data.title || "").slice(0, 80), level, lang, type: data.type });
@@ -776,7 +844,10 @@ function render(){
   if (!isLesson) { boardOff = true; clearTimeout(pumpTimer); }
 
   const ex = $("extras"); ex.classList.add("hide");
-  ["imgCard","wowCard","tryCard","quizCard","deepCard"].forEach(id => $(id).classList.add("hide"));
+  ["imgCard","wowCard","tryCard","quizCard","deepCard","practiceCard"].forEach(id => $(id).classList.add("hide"));
+  if (isLesson) renderPractice(L.practice || []);
+  $("checkBox").classList.add("hide"); $("checkFb").textContent = "";
+  ["idea","real","home"].forEach(a => { const b = document.querySelector('#views [data-a="' + a + '"]'); if (b) b.classList.toggle("on", (L._action || "idea") === a); });
   if (isLesson) {
     if (L.wow) { $("wow").textContent = L.wow; $("wowCard").classList.remove("hide"); ex.classList.remove("hide"); }
     if (L.try_it) { $("try").textContent = L.try_it; $("tryCard").classList.remove("hide"); ex.classList.remove("hide"); }
@@ -1020,6 +1091,152 @@ function pauseLabel(){ const b = $("pause"); if (!b) return; const L = (typeof t
   b.textContent = paused ? (readyWhilePaused ? c + " · diagram ready" : c) : (L.pause || "⏸ Pause");
   b.classList.toggle("hide", !speaking); b.classList.toggle("on", paused); b.classList.toggle("ready", paused && readyWhilePaused); studyUI(); }
 function unpause(){ if (typeof boardHeld !== "undefined") boardHeld = false; if (!paused) return; paused = false; try { if (ctx) ctx.resume(); } catch(e) {} elUnhold(); try { speechSynthesis.resume(); } catch(e) {} pauseLabel(); }
+/* ---------- three paths: I'm curious · Learn a skill · Help with my work ---------- */
+var curMode = "curious", curSubject = "", sessionLog = [];
+try { const m0 = localStorage.getItem("mpc_mode"); if (m0 === "skill" || m0 === "work") curMode = m0; } catch(e) {}
+function pathText(){
+  const L = t();
+  $("pCur").textContent = L.pCur; $("pCurS").textContent = L.pCurS;
+  $("pSkill").textContent = L.pSkill; $("pSkillS").textContent = L.pSkillS;
+  $("pWork").textContent = L.pWork; $("pWorkS").textContent = L.pWorkS;
+  $("q").placeholder = curMode === "skill" ? L.phSkill : curMode === "work" ? L.phWork : L.placeholder;
+  const sb = $("subjects"); sb.innerHTML = "";
+  const lab = document.createElement("span"); lab.className = "sl"; lab.textContent = L.pickSubject; sb.appendChild(lab);
+  T.en.subjects.forEach((en, i) => {
+    const b = document.createElement("button"); b.className = "chip" + (curSubject === en ? " on" : ""); b.textContent = L.subjects[i];
+    b.onclick = () => { curSubject = curSubject === en ? "" : en; pathText(); };
+    sb.appendChild(b);
+  });
+  sb.classList.toggle("hide", curMode === "curious");
+  ["viewsLabel","vIdea","vReal","vHome","helpsLabel","hAnother","hWalk","hHint","hPractice","hCheck","checkGo","hPrac","noteBtn"].forEach(id => { if ($(id)) $(id).textContent = L[id]; });
+  $("checkText").placeholder = L.checkPh;
+}
+function setMode(m){
+  curMode = m; try { localStorage.setItem("mpc_mode", m); } catch(e) {}
+  document.querySelectorAll("#paths button").forEach(b => b.classList.toggle("on", b.dataset.mode === m));
+  $("cam").classList.toggle("pulse", m === "work");
+  pathText();
+  if (typeof renderStarters === "function" && m === "curious") renderStarters();
+  $("starters").classList.toggle("hide", m !== "curious");
+  try { $("q").focus({ preventScroll: true }); } catch(e) {}
+}
+document.querySelectorAll("#paths button").forEach(b => b.onclick = () => { unlock(); setMode(b.dataset.mode); });
+
+/* ---------- buttons under each answer: see it another way, more help ---------- */
+document.querySelectorAll("#views button, #helps button").forEach(b => b.onclick = () => {
+  if (!lesson || busy) return;
+  unlock();
+  const a = b.dataset.a;
+  if (a === "check") { $("checkBox").classList.toggle("hide"); if (!$("checkBox").classList.contains("hide")) $("checkText").focus(); return; }
+  if (a === "hint") logStat("hints");
+  const label = b.textContent.replace(/^\W+\s*/, "");
+  ask(label + ": " + (lesson.title || ""), lesson.title, { action: a, prev: speech, scroll: true });
+});
+$("checkGo").onclick = async () => {
+  const work = $("checkText").value.trim(); if (!work || !lesson) return;
+  const L = t(), fb = $("checkFb"); fb.textContent = L.checking;
+  let d = null;
+  try {
+    const r = await fetch("/api/ask", { method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ part: "check", question: "check", level, lang, work, context: lesson.title || "", prev: speech }) });
+    if (r.ok) d = await r.json();
+  } catch(e) {}
+  if (!d || !d.feedback) { fb.textContent = L.checkFail; return; }
+  const head = d.verdict === "right" ? L.vRight : d.verdict === "partly" ? L.vPartly : L.vNot;
+  fb.textContent = head + d.feedback;
+  logStat("checks");
+  if (!speaking) sayShort(d.feedback);
+};
+
+/* ---------- practice problems: answers are checked right here, numbers by math ---------- */
+function pNorm(x){ return String(x || "").toLowerCase().replace(/[$,]/g, "").replace(/\s+/g, " ").replace(/[.!?]+$/, "").trim(); }
+function pNum(x){
+  const v = pNorm(x);
+  let m = v.match(/^(-?\d+)\s+(\d+)\s*\/\s*(\d+)$/); if (m) return +m[1] + m[2] / m[3];
+  m = v.match(/^(-?\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)$/); if (m) return m[1] / m[2];
+  m = v.match(/^-?\d+(?:\.\d+)?/); if (m) return parseFloat(m[0]);   // "12 apples" -> 12
+  return null;
+}
+function pSame(given, want){
+  const w = pNum(want), g = pNum(given);
+  if (w !== null && /^-?[\d.\/\s]+$/.test(pNorm(want))) return g !== null && Math.abs(g - w) < 1e-9;
+  const a = pNorm(given), b = pNorm(want);
+  if (!a) return false;
+  return a === b || (" " + a + " ").includes(" " + b + " ");
+}
+function renderPractice(list){
+  const box = $("pList"), L = t(); box.innerHTML = ""; $("pScore").textContent = "";
+  if (!list.length) { $("practiceCard").classList.add("hide"); return; }
+  let right = 0;
+  list.forEach((p, i) => {
+    const card = document.createElement("div"); card.className = "pq";
+    const q = document.createElement("div"); q.className = "pt"; q.textContent = (i + 1) + ". " + p.q;
+    const row = document.createElement("div"); row.className = "pr";
+    const inp = document.createElement("input"); inp.placeholder = L.pPh; inp.autocomplete = "off";
+    const ck = document.createElement("button"); ck.className = "btn"; ck.textContent = L.pCheck;
+    const hb = document.createElement("button"); hb.className = "btn"; hb.textContent = L.pHintB;
+    const fb = document.createElement("div"); fb.className = "pf";
+    let tries = 0, done = false;
+    const check = () => {
+      if (done || !inp.value.trim()) return;
+      tries++;
+      if (tries === 1) logStat("tried");
+      if (pSame(inp.value, p.answer)) {
+        done = true; right++; card.classList.add("right"); fb.textContent = L.pRight; inp.disabled = true; ck.disabled = true;
+        logStat("right"); $("pScore").textContent = L.pScore(right, list.length);
+        if (!speaking) sayShort(L.pRight.replace(/^\W+/, ""));
+      } else {
+        fb.textContent = L.pWrong;
+        if (tries >= 2 && !row.querySelector(".show")) {
+          const sh = document.createElement("button"); sh.className = "btn show"; sh.textContent = L.pShow;
+          sh.onclick = () => { fb.textContent = L.pAns + p.answer; done = true; inp.disabled = true; ck.disabled = true; };
+          row.appendChild(sh);
+        }
+      }
+    };
+    ck.onclick = check; inp.onkeydown = e => { if (e.key === "Enter") check(); };
+    hb.onclick = () => { fb.textContent = "💬 " + (p.hint || L.pWrong); logStat("hints"); };
+    row.append(inp, ck, hb); card.append(q, row, fb); box.appendChild(card);
+  });
+  $("practiceCard").classList.remove("hide");
+}
+
+/* ---------- note for the grown-up ---------- */
+function logLesson(L, opts){
+  if (!L || L.type !== "lesson") return;
+  sessionLog.push({ title: L.title || "", mode: curMode, subject: curSubject, action: (opts && opts.action) || "", tried: 0, right: 0, hints: 0, checks: 0, next: (L.deeper || [])[0] || "" });
+  $("noteBtn").classList.remove("hide");
+}
+function curEntry(){ return sessionLog[sessionLog.length - 1]; }
+function logStat(k){ const e = curEntry(); if (e) e[k]++; }
+function noteText(){
+  const L = t(), lines = [L.noteTitle + " (" + new Date().toLocaleDateString(lang === "es" ? "es-US" : "en-US") + ")", "", L.noteTopics + ":"];
+  let tried = 0, right = 0, hints = 0, checks = 0;
+  sessionLog.forEach(e => {
+    lines.push("• " + L.modeNames[e.mode] + (e.subject ? " (" + L.subjects[T.en.subjects.indexOf(e.subject)] + ")" : "") + ": " + e.title + (e.action ? " — " + L.actNames[e.action] : ""));
+    tried += e.tried; right += e.right; hints += e.hints; checks += e.checks;
+  });
+  lines.push("", L.notePrac + ": " + (tried ? L.pScore(right, tried) : L.noteNone), L.noteHints + ": " + hints, L.noteChecks + ": " + checks);
+  const nx = (sessionLog.slice().reverse().find(e => e.next) || {}).next;
+  if (nx) lines.push("", L.noteNext + ": " + nx);
+  return lines.join("\n");
+}
+$("noteBtn").onclick = () => {
+  const L = t(), card = $("noteCard");
+  if (!card.classList.contains("hide")) { card.classList.add("hide"); return; }
+  const txt = noteText(); card.innerHTML = "";
+  const pre = document.createElement("div"); pre.style.whiteSpace = "pre-wrap"; pre.style.lineHeight = "1.6"; pre.style.fontWeight = "700"; pre.textContent = txt;
+  const row = document.createElement("div"); row.className = "noprint"; row.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;margin-top:12px";
+  const pr = document.createElement("button"); pr.className = "btn"; pr.textContent = L.notePrint;
+  pr.onclick = () => { document.body.classList.add("print-note"); window.print(); setTimeout(() => document.body.classList.remove("print-note"), 500); };
+  const cp = document.createElement("button"); cp.className = "btn"; cp.textContent = L.noteCopy;
+  cp.onclick = async () => { try { await navigator.clipboard.writeText(txt); cp.textContent = L.noteCopied; } catch(e) {} };
+  const cl = document.createElement("button"); cl.className = "btn"; cl.textContent = L.noteClose; cl.onclick = () => card.classList.add("hide");
+  row.append(pr, cp, cl); card.append(pre, row); card.classList.remove("hide");
+  card.scrollIntoView({ behavior: "smooth", block: "center" });
+};
+setMode(curMode);
+
 function pauseVoice(){
   if (!speaking || paused) return;
   paused = true;
