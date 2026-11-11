@@ -550,7 +550,7 @@ function applyText(){
   $("brand").innerHTML = L.brand; $("lvLittle").innerHTML = L.little; $("lvBig").innerHTML = L.big; $("lvTeen").innerHTML = L.teen;
   $("vMan").textContent = L.man; $("vWoman").textContent = L.woman;
   $("present").textContent = document.body.classList.contains("present") ? L.presentOff : L.present;
-  $("q").placeholder = L.placeholder; $("go").textContent = L.ask;
+  $("q").placeholder = ""; $("go").textContent = L.ask;
   if (!busy) $("hint").textContent = SR ? L.hint : L.noMic;
   $("again").textContent = L.again; $("stop").textContent = L.stop; $("pause").textContent = L.pause; $("print").textContent = L.print; $("helpful").textContent = L.helpful;
   $("hImg").textContent = L.hImg; $("hWow").textContent = L.hWow; $("hTry").textContent = L.hTry; $("hQuiz").textContent = L.hQuiz;
@@ -1171,7 +1171,7 @@ function pathText(){
   $("pWork").textContent = L.pWork; $("pWorkS").textContent = L.pWorkS;
   $("pWhy").textContent = L.pWhy; $("pWhyS").textContent = L.pWhyS;
   $("pathMsg").textContent = L.pathMsg[curMode];
-  $("q").placeholder = curMode === "skill" ? L.phSkill : curMode === "work" ? L.phWork : curMode === "why" ? L.phWhy : L.placeholder;
+  $("q").placeholder = "";   // the hint line under the box explains what to type (long words here got cut off on phones)
   if (!lesson && !busy && !photo && !docFile) $("hint").textContent = curMode === "skill" ? L.hintSkill : curMode === "work" ? L.hintWork : curMode === "why" ? L.hintWhy : (SR ? L.hint : L.noMic);
   const sb = $("subjects"); sb.innerHTML = "";
   const lab = document.createElement("span"); lab.className = "sl"; lab.textContent = L.pickSubject; sb.appendChild(lab);
@@ -1322,7 +1322,7 @@ function renderDrill(){
   d.appendChild(grid);
   const row = el("div", "drow");
   if (drill.path.length) { const bk = el("button", "btn", L.drillBack); bk.onclick = () => { drill.path.pop(); loadDrill(false); }; row.appendChild(bk); }
-  const own = el("button", "btn", L.drillOwn); own.onclick = () => { $("q").placeholder = L.drillOwnPh; $("q").value = ""; $("q").focus(); }; row.appendChild(own);
+  const own = el("button", "btn", L.drillOwn); own.onclick = () => { $("q").value = ""; $("hint").textContent = L.drillOwnPh.replace("…", "") + " ⬆"; $("q").focus(); }; row.appendChild(own);
   const mo = el("button", "btn", L.drillMore); mo.disabled = drill.loading; mo.onclick = () => loadDrill(true); row.appendChild(mo);
   const cur = drill.path.length ? drill.path[drill.path.length - 1] : subjectLabel(drill.subject);
   const te = el("button", "btn", L.drillTest(cur)); te.onclick = () => { unlock(); startTest(drill.path.length ? `${cur} (${subjectLabel(drill.subject)})` : cur, 1); }; row.appendChild(te);
