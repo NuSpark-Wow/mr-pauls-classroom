@@ -109,6 +109,41 @@ FORMULAS: formula | explanation ;; formula | explanation
 Leave LEGEND or FORMULAS empty when there are none. Write nothing before the first block or after the last one. If the question is not appropriate, write only: === NONE`;
 const SYSTEM_BOARD_STREAM = SYSTEM_BOARD.replace("Always respond by calling the give_board tool.", STREAM_FORMAT);
 
+// The three paths a child (or parent) can choose, and the follow-up buttons under each answer
+const PRACTICE_RULES = `PRACTICE: give "practice" problems at the child's grade. Each has "q" (the problem, short and clear), "answer" (the short exact answer only: digits for numbers like 12 or 3.5, fractions like 3/4, or one or two words), and "hint" (one helpful nudge that does NOT give the answer).`;
+const MODES = {
+  skill: s => `THE CHILD CHOSE "LEARN A SKILL"${s ? ` in ${s}` : ""}. Teach the skill they named like a short, friendly lesson: paragraph 1 says what it is and why it matters, paragraph 2 works one example step by step, paragraph 3 gives a tip or a common mistake to avoid (keep it to 3-4 paragraphs). ${PRACTICE_RULES} Give exactly 3 practice problems, easiest first.`,
+  work: s => `THE CHILD CHOSE "HELP WITH MY WORK"${s ? ` (${s})` : ""}: this is their own school or homeschool work, maybe in a photo. NEVER give the final answer to their actual problem, and never write their writing for them. Instead: paragraph 1 says what the problem is asking and the idea it uses, paragraphs 2-3 walk through the first steps with hints and questions, and the last paragraph encourages them to finish it themselves. ${PRACTICE_RULES} Give 2 practice problems LIKE theirs (not their exact problem).`
+};
+const ACTIONS = {
+  idea: `Explain the core IDEA of this same topic clearly: what it is, the rule or how it works, in simple steps. Title it like "The Big Idea: ...".`,
+  real: `Show where this same topic shows up in REAL LIFE: 2-3 paragraphs of everyday examples from a kid's world (home, the store, sports, games, cooking, nature, the playground). Title it like "In Real Life: ...".`,
+  home: `Give a hands-on activity to TRY AT HOME about this same topic with a grown-up, using only safe household items (no fire, stove, heat, sharp tools, electricity or cleaners). Paragraph 1: what you need. Paragraphs 2-3: the steps. Last paragraph: what you will notice and why. Start with "With a grown-up," (or "Con un adulto,"). Title it like "Try It at Home: ...".`,
+  another: `Explain this SAME topic in a completely DIFFERENT way: a new comparison, a new example, a new picture in the mind. Do not repeat the earlier explanation. Title it like "Another Way to See It: ...".`,
+  walk: `WALK THE CHILD THROUGH this same topic one tiny step at a time: each paragraph is one numbered step ("Step 1: ..."), 3-4 steps, short and clear. Title it like "Step by Step: ...".`,
+  hint: `Give ONE helpful HINT toward what the child is working on, not the answer: 1-2 short paragraphs that point them in the right direction and ask a guiding question. Title it like "Here's a Hint".`,
+  practice: `Give PRACTICE on this same topic. "answer" is 1 short paragraph of encouragement saying what they will practice. ${PRACTICE_RULES} Give exactly 4 new practice problems, easiest first. Title it like "Practice Time: ...".`
+};
+const CHECK_TOOL = {
+  name: "give_check", description: "Deliver Mr. Paul's feedback on the child's work.",
+  input_schema: { type: "object", properties: { verdict: { type: "string", enum: ["right", "partly", "not_yet"] }, feedback: { type: "string" } }, required: ["verdict", "feedback"] }
+};
+const SYSTEM_CHECK = `You are Mr. Paul, a warm, patient grade-school teacher checking a child's work. You get the topic, what Mr. Paul taught, the problem (if any) and the child's answer or steps.
+- verdict: "right" if correct, "partly" if on the right track with a mistake, "not_yet" if wrong.
+- feedback: 2-3 short, kind sentences for the child, read aloud. Praise what is right first. If there is a mistake, point to WHERE it is and give a hint to fix it. Never just give the correct final answer. No emojis, no markdown.
+If the child's text is not about schoolwork or is inappropriate, verdict "not_yet" and gently ask them to share their work on the lesson.`;
+async function checkWork(src, send, level, lang) {
+  const clip = (v, n) => String(v || "").replace(/[<>]/g, " ").replace(/\s+/g, " ").trim().slice(0, n);
+  const work = clip(src.work, 800); if (!work) return send(400, { error: "empty" });
+  const user = `${LEVELS[level]}${lang === "es" ? "\nAnswer in simple, friendly Spanish." : ""}\nTopic: ${clip(src.context, 120)}\nWhat Mr. Paul taught: ${clip(src.prev, 1200)}\nThe problem: ${clip(src.problem, 300) || "(the child's own work on this topic)"}\nThe child's answer or steps: ${work}`;
+  try {
+    const j = await withRetry(() => callTool(SYSTEM_CHECK, CHECK_TOOL, user, 600, x => typeof x.feedback === "string", "claude-haiku-5-5"), 15000);
+    return send(200, { verdict: ["right", "partly", "not_yet"].includes(j.verdict) ? j.verdict : "partly", feedback: clip(j.feedback, 600) }, false);
+  } catch (e) {
+    return send(500, { error: "oops", reason: errorCode(e) });
+  }
+}
+
 const LESSON_TOOL = {
   name: "give_lesson",
   description: "Deliver Mr. Paul's words to the child.",
@@ -123,7 +158,8 @@ const LESSON_TOOL = {
       wow: { type: "string" },
       try_it: { type: "string" },
       quiz: { type: "object", properties: { question: { type: "string" }, options: { type: "array", items: { type: "string" } }, answer: { type: "integer" }, why: { type: "string" } } },
-      deeper: { type: "array", items: { type: "string" } }
+      deeper: { type: "array", items: { type: "string" } },
+      practice: { type: "array", items: { type: "object", properties: { q: { type: "string" }, answer: { type: "string" }, hint: { type: "string" } } } }
     },
     required: ["type", "title", "answer"]
   }
@@ -338,6 +374,10 @@ module.exports = async (req, res) => {
   const context = isGet ? "" : String(src.context || "").slice(0, 120);
   const more = !isGet && src.more === true;
   const prev = isGet ? "" : String(src.prev || "").slice(0, 1200);
+  const mode = ["skill", "work"].includes(src.mode) ? src.mode : "curious";
+  const subject = String(src.subject || "").replace(/[^A-Za-zÀ-ÿ &]/g, "").slice(0, 40);
+  const action = !isGet && ACTIONS[src.action] ? src.action : "";
+  if (src.part === "check" && !isGet) return checkWork(src, send, level, lang);
   // the drawing request carries Mr. Paul's answer, one paragraph per line, so each picture matches a paragraph
   const paras = String(src.a || "").split("\n").map(x => x.trim()).filter(Boolean).slice(0, 4).map(x => x.slice(0, 700));
   // optional picture (POST only): explained, never saved
@@ -362,6 +402,11 @@ module.exports = async (req, res) => {
     user = `${LEVELS[level]}${lang === "es" ? "\n\n" + SPANISH : ""}\n\nThe child tapped "Tell me more" about: ${context}\nHere is what Mr. Paul ALREADY taught them:\n${prev}\n\nGo one step deeper on this same topic, at the same grade level, with NEW facts. Do not repeat what was already said. Make the title fun, like "More About ...".${/^(tell me more|cu[eé]ntame m[aá]s)/i.test(question) ? "" : `\nThe child especially wants to know: ${question}`}`;
   }
 
+  if (action) {
+    user = `${LEVELS[level]}${lang === "es" ? "\n\n" + SPANISH : ""}\n\nThe child is learning about: ${context}\nHere is what Mr. Paul ALREADY taught them:\n${prev}\n\nThe child tapped a button. ${ACTIONS[action]} Stay at the same grade level.`;
+  } else if (mode !== "curious" && !more) {
+    user += `\n\n${MODES[mode](subject)}`;
+  }
   if (part === "board") {
     if (paras.length) {
       user += `\n\nMr. Paul's answer, paragraph by paragraph:\n${paras.map((x, i) => `${i + 1}. ${x}`).join("\n")}\n\nDraw EXACTLY ${paras.length} steps, one per paragraph, in the same order. Step ${paras.length > 1 ? "k" : "1"} must show what paragraph ${paras.length > 1 ? "k" : "1"} is talking about, so the picture changes as Mr. Paul talks. The board is wiped between steps, so each step is a complete picture on its own.`;
@@ -381,6 +426,8 @@ module.exports = async (req, res) => {
   }
 
   if (!["lesson", "redirect", "grownup", "help"].includes(lesson.type)) lesson.type = "lesson";
+  lesson.practice = (Array.isArray(lesson.practice) ? lesson.practice : []).filter(x => x && x.q && x.answer).slice(0, 5)
+    .map(x => ({ q: String(x.q).slice(0, 300), answer: String(x.answer).slice(0, 60), hint: String(x.hint || "").slice(0, 300) }));
   if (lesson.type === "grownup") return send(200, GROWNUP[lang], true);
   if (lesson.type === "help") return send(200, HELP[lang], true);
 
