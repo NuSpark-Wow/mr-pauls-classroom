@@ -152,6 +152,7 @@ async function anthropic(body) {
 async function callTool(system, tool, user, maxTokens, check, model) {
   const data = await anthropic({
     model: model || MODEL, max_tokens: maxTokens, system,
+    ...(/haiku/i.test(model || MODEL) ? { thinking: { type: "disabled" } } : {}),
     tools: [tool], tool_choice: { type: "auto" },
     messages: [{ role: "user", content: user }]
   });
@@ -280,6 +281,42 @@ async function safetyCheck(question, lesson) {
   return !unsafe;
 }
 
+// "Explain this picture": a little more detail on each word and symbol in one figure, and why it matters.
+// The page sends the figure's title, caption, the words on it and its formulas; answers are saved on Vercel's network.
+const EXPLAIN_TOOL = {
+  name: "give_explanations", description: "Deliver the expanded explanations for one picture.",
+  input_schema: { type: "object", properties: {
+    overview: { type: "string" },
+    items: { type: "array", items: { type: "object", properties: { word: { type: "string" }, more: { type: "string" }, why: { type: "string" } } } },
+    formulas: { type: "array", items: { type: "object", properties: { formula: { type: "string" }, more: { type: "string" }, why: { type: "string" } } } }
+  }, required: ["items"] }
+};
+const SYSTEM_EXPLAIN = `You are Mr. Paul, a warm, fun grade-school teacher helping a child study one picture from your lesson. They paused the lesson to understand the picture better. Use short sentences and simple words a 6 to 11 year old knows, with a friendly everyday comparison when it helps (like "about as tall as a giraffe"). Keep "more" to 1-2 short sentences and "why" to one short sentence.
+Given the lecture question, the figure's title and caption, the words and symbols written on it, and its formulas:
+- "overview": 1-2 sentences on what the whole figure shows and the one thing to notice first.
+- "items": for each word or symbol that names something (skip filler like "Fig." or plain numbers), give "word" exactly as written, "more": 2-3 plain sentences saying what it is and how it fits in this picture, and "why": one sentence on why it matters in real life or to the big idea. Order them the way the eye reads the figure. At most 10 items; merge duplicates.
+- "formulas": for each formula, "formula" exactly as written, "more": what each part stands for and what the formula says, in plain words, with a tiny worked example if it helps, and "why": one sentence on why it matters.
+Be accurate. Use everyday words; when a technical term is needed, explain it. No Markdown.
+If the content is not appropriate for an educational site, return items: [].`;
+async function explainFigure(src, send) {
+  const clip = (v, n) => String(v || "").replace(/[<>]/g, " ").replace(/\s+/g, " ").trim().slice(0, n);
+  const question = clip(src.q, 300), title = clip(src.t, 160), caption = clip(src.c, 240);
+  const words = clip(src.w, 900).split("|").map(x => x.trim()).filter(Boolean).slice(0, 24);
+  const formulas = clip(src.f, 600).split("||").map(x => x.trim()).filter(Boolean).slice(0, 4);
+  if (!words.length && !formulas.length && !title) return send(400, { error: "empty" });
+  const kid = src.level === "big" ? "The child is in grades 3 to 6." : "The child is in grades K to 2: use very short sentences and the simplest words.";
+  const lang = src.lang === "es" ? " Write everything in simple, friendly Spanish (keep each \"word\" exactly as written on the picture)." : "";
+  const user = `${kid}${lang}\nLesson question: ${question}\nFigure title: ${title}\nCaption: ${caption}\nWords and symbols on the figure: ${words.join(" | ") || "(none)"}\nFormulas on the figure: ${formulas.join(" || ") || "(none)"}`;
+  try {
+    const j = await withRetry(() => callTool(SYSTEM_EXPLAIN, EXPLAIN_TOOL, user, 2500, x => Array.isArray(x.items), CHECK_MODEL), 15000);
+    const items = j.items.map(i => ({ word: clip(i.word, 60), more: clip(i.more, 600), why: clip(i.why, 300) })).filter(i => i.word && i.more).slice(0, 10);
+    const fx = (Array.isArray(j.formulas) ? j.formulas : []).map(i => ({ formula: clip(i.formula, 100), more: clip(i.more, 700), why: clip(i.why, 300) })).filter(i => i.formula && i.more).slice(0, 4);
+    return send(200, { overview: clip(j.overview, 400), items, formulas: fx }, true);
+  } catch (e) {
+    return send(500, { error: "oops", reason: errorCode(e) });
+  }
+}
+
 module.exports = async (req, res) => {
   const isGet = req.method === "GET";
   if (!isGet && req.method !== "POST") return res.status(405).json({ error: "GET or POST only" });
@@ -293,6 +330,7 @@ module.exports = async (req, res) => {
   if (!process.env.ANTHROPIC_API_KEY) return send(500, { error: "oops", reason: "K1" });
 
   const src = (isGet ? req.query : req.body) || {};
+  if (src.part === "explain") return explainFigure(src, send);
   const part = src.part === "board" ? "board" : "lesson";
   const question = String(src.q || src.question || "").trim().slice(0, 200);
   const level = src.level === "big" ? "big" : "little";
