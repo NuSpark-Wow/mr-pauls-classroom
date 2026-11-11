@@ -153,6 +153,25 @@ button{font-family:inherit;cursor:pointer}
 .thumbs button{border:0;background:#f3efe6;border-radius:10px;padding:8px 10px;font-size:18px}
 .thumbs button:hover{background:#e9e2d2}
 .print-only{display:none}
+/* Study bar under the chalkboard: Pause, Continue, Explain this picture */
+.studybar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:10px 4px 2px}
+.studybar button{min-height:50px;border-radius:12px;border:2px solid rgba(255,255,255,.35);background:rgba(255,255,255,.08);color:#fff;font-weight:800;font-size:17px;line-height:1.15;padding:6px 8px}
+.studybar button:disabled{opacity:.38}
+.studybar button.on:disabled{opacity:1}
+.studybar button small{display:block;font-size:12px;font-weight:600;margin-top:2px}
+.studybar button.on{background:#ffe08a;border-color:#ffe08a;color:#2a2a1e}
+.studybar #bCont.ready{animation:readyGlow 1.6s ease-in-out infinite;border-color:#a3e635;color:#a3e635;opacity:1}
+.studybar #bCont.ready.on{color:#2a2a1e}
+@media (max-width:560px){.studybar button{font-size:14px;min-height:54px}}
+.explain{margin:8px 4px 2px;padding:12px 14px;border-top:1px dashed rgba(255,255,255,.3);color:#fff;font-size:17px;line-height:1.5}
+.explain .lt{font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:#cfe0ff;font-weight:700;margin:4px 0 6px}
+.explain .ov{margin:0 0 10px;font-style:italic}
+.explain .it{margin:0 0 10px}
+.explain .it b{font-family:'Patrick Hand',cursive;font-size:23px;color:#ffd33d;margin-right:6px}
+.explain .why{display:block;color:#a8f0b0;margin-top:2px}
+.explain .wait{color:#cfe0ff;font-style:italic}
+.explain .hidebtn{border:1px solid rgba(255,255,255,.35);background:none;color:#f5f3ea;border-radius:10px;padding:8px 14px;font-weight:700;font-size:14px;margin-top:4px}
+
 .legend{margin:8px 4px 2px;padding:10px 6px 2px;border-top:2px dashed rgba(255,255,255,.3);display:flex;flex-wrap:wrap;gap:8px;color:#fff}
 .legend .lt{width:100%;font-size:13px;font-weight:900;letter-spacing:.4px;text-transform:uppercase;color:#cfe0ff}
 .legend button{border:0;background:rgba(255,255,255,.14);color:#fff;border-radius:999px;padding:8px 14px;font-weight:800;font-size:16px}
@@ -254,7 +273,13 @@ body.present .caption{font-size:clamp(22px,2vw,30px)}
           <button id="replay" aria-label="Draw it again" disabled>⟲</button>
         </div>
       </div>
+      <div class="studybar" id="studybar">
+        <button id="bPause" disabled>⏸ Pause</button>
+        <button id="bCont" disabled>▶ Continue</button>
+        <button id="bExplain" disabled>📖 Explain this picture</button>
+      </div>
       <div class="legend hide" id="legend"></div>
+      <div class="explain hide" id="explain" aria-live="polite"></div>
     </div>
 
     <div class="panel">
@@ -326,7 +351,7 @@ const T = {
     another: "Ask another question anytime!", tapAgain: "Tap Ask to try again.", watch: "Watch the board!", start: "Ask a question to start!",
     step: "Step", legend: "🔤 What these mean", mathWorks: "🧮 How the math works", welcomeTitle: "Hi, I'm Mr. Paul! 👋",
     welcomeText: "Ask me a question with your voice or by typing. I'll explain it, draw it on my smart board, and then we'll do a quick quiz together!",
-    again: "🔊 Hear it again", stop: "⏹ Stop", pause: "⏸ Pause", resume: "▶ Continue", print: "🖨️ Print", helpful: "Helpful?", thanks: "Thanks! 💛",
+    again: "🔊 Hear it again", stop: "⏹ Stop", pause: "⏸ Pause", resume: "▶ Continue", explainBtn: "📖 Explain this picture", hideExplain: "📖 Hide explanation", hideBtn: "Hide explanation", nextReady: "next step ready", explaining: "Mr. Paul is getting the explanation ready… just a few seconds!", explainFail: "Oops, that didn't work. Tap the button again in a moment.", aboutPic: "About this picture", eachWord: "What each word means", whyMatters: "Why it matters: ", print: "🖨️ Print", helpful: "Helpful?", thanks: "Thanks! 💛",
     hImg: "📷 What it looks like", hWow: "⭐ Surprise Fact!", hTry: "🧪 Try It at Home", hQuiz: "✏️ Quick Check",
     gotIt: "🎉 You got it! ", goodTry: "Good try! Pick another one.", answerKey: "Answer: ",
     hDeep: "🔍 Keep learning!", askAbout: "💬 Ask about this", tellMore: "➕ Tell me more", orTry: "Or try one of these:",
@@ -356,7 +381,7 @@ const T = {
     another: "¡Haz otra pregunta cuando quieras!", tapAgain: "Toca Preguntar para intentar otra vez.", watch: "¡Mira la pizarra!", start: "¡Haz una pregunta para empezar!",
     step: "Paso", legend: "🔤 Qué significan", mathWorks: "🧮 Cómo funcionan las matemáticas", welcomeTitle: "¡Hola, soy Mr. Paul! 👋",
     welcomeText: "Hazme una pregunta con tu voz o escribiendo. Te la explico, la dibujo en mi pizarra, ¡y luego hacemos un juego de preguntas!",
-    again: "🔊 Escuchar otra vez", stop: "⏹ Parar", pause: "⏸ Pausa", resume: "▶ Seguir", print: "🖨️ Imprimir", helpful: "¿Te ayudó?", thanks: "¡Gracias! 💛",
+    again: "🔊 Escuchar otra vez", stop: "⏹ Parar", pause: "⏸ Pausa", resume: "▶ Seguir", explainBtn: "📖 Explícame el dibujo", hideExplain: "📖 Ocultar explicación", hideBtn: "Ocultar explicación", nextReady: "siguiente paso listo", explaining: "Mr. Paul está preparando la explicación… ¡solo unos segundos!", explainFail: "Uy, no funcionó. Toca el botón otra vez en un momento.", aboutPic: "Sobre este dibujo", eachWord: "Qué significa cada palabra", whyMatters: "Por qué importa: ", print: "🖨️ Imprimir", helpful: "¿Te ayudó?", thanks: "¡Gracias! 💛",
     hImg: "📷 Así se ve", hWow: "⭐ ¡Dato sorpresa!", hTry: "🧪 Pruébalo en casa", hQuiz: "✏️ Repaso rápido",
     gotIt: "🎉 ¡Muy bien! ", goodTry: "¡Buen intento! Elige otra.", answerKey: "Respuesta: ",
     hDeep: "🔍 ¡Sigue aprendiendo!", askAbout: "💬 Pregunta sobre esto", tellMore: "➕ Cuéntame más", orTry: "O prueba una de estas:",
@@ -401,6 +426,8 @@ function applyText(){
   $("lnEn").classList.toggle("on", lang === "en"); $("lnEs").classList.toggle("on", lang === "es");
   if (rec) rec.lang = lang === "es" ? "es-US" : "en-US";
   renderStarters();
+  if (typeof studyUI === "function") studyUI();
+  if (typeof explainFor !== "undefined" && explainFor) closeExplain();   // the explanation was in the other language
 }
 function setLang(l){
   lang = l; try { localStorage.setItem("mpc_lang", l); } catch(e) {}
@@ -829,7 +856,7 @@ function sanitize(markup){
   return out;
 }
 function buildBoard(steps){
-  const svg = $("svg"); svg.innerHTML = ""; groups = []; shown = 0; manual = false; boardStart = 0; liveBoard = false; $("legend").classList.add("hide");
+  const svg = $("svg"); svg.innerHTML = ""; if (typeof explainFor !== "undefined" && explainFor) { explainFor = null; $("explain").classList.add("hide"); } groups = []; shown = 0; manual = false; boardStart = 0; liveBoard = false; $("legend").classList.add("hide");
   steps.forEach(s => {
     const g = sanitize(s.svg || "") || document.createElementNS(NS, "g");
     g.style.display = "none"; g.dataset.caption = s.caption || "";
@@ -898,6 +925,7 @@ function tidyText(g){
 function revealNext(){
   if (shown >= groups.length) return;
   if (liveBoard) groups.forEach((g, i) => { if (i !== shown) g.style.display = "none"; });   // wipe the board
+  if (explainFor && explainFor !== groups[shown]) closeExplain();
   drawGroup(groups[shown]); tidyText(groups[shown]);
   $("caption").textContent = (groups.length > 1 || liveBoard ? `${t().step} ${shown + 1}: ` : "") + (groups[shown].dataset.caption || "");
   shown++; updateCtrls();
@@ -938,12 +966,13 @@ function renderLegend(){
 }
 function updateCtrls(){
   renderLegend();
-  $("prev").disabled = shown <= 1; $("next").disabled = shown >= groups.length; $("replay").disabled = groups.length === 0;
+  $("prev").disabled = shown <= 1; $("next").disabled = shown >= groups.length; $("replay").disabled = groups.length === 0; if (typeof studyUI === "function") studyUI();
 }
 $("next").onclick = () => { manual = true; revealNext(); };
 $("prev").onclick = () => {
   manual = true; if (shown <= 1) return;
   shown--; groups[shown].style.display = "none";
+  if (explainFor && explainFor !== groups[shown - 1]) closeExplain();
   if (liveBoard) { drawGroup(groups[shown - 1]); tidyText(groups[shown - 1]); }
   $("caption").textContent = (groups.length > 1 ? `${t().step} ${shown}: ` : "") + (groups[shown - 1].dataset.caption || "");
   updateCtrls();
@@ -978,16 +1007,79 @@ var readyWhilePaused = false;
 function pauseLabel(){ const b = $("pause"); if (!b) return; const L = (typeof t === "function" && t()) || {}; if (!paused) readyWhilePaused = false;
   const c = (L.resume || "▶ Continue");
   b.textContent = paused ? (readyWhilePaused ? c + " · diagram ready" : c) : (L.pause || "⏸ Pause");
-  b.classList.toggle("hide", !speaking); b.classList.toggle("on", paused); b.classList.toggle("ready", paused && readyWhilePaused); }
-function unpause(){ if (!paused) return; paused = false; try { if (ctx) ctx.resume(); } catch(e) {} try { speechSynthesis.resume(); } catch(e) {} pauseLabel(); }
-$("pause").onclick = () => {
-  if (!speaking) return;
-  if (paused) { unpause(); return; }
+  b.classList.toggle("hide", !speaking); b.classList.toggle("on", paused); b.classList.toggle("ready", paused && readyWhilePaused); studyUI(); }
+function unpause(){ if (typeof boardHeld !== "undefined") boardHeld = false; if (!paused) return; paused = false; try { if (ctx) ctx.resume(); } catch(e) {} try { speechSynthesis.resume(); } catch(e) {} pauseLabel(); }
+function pauseVoice(){
+  if (!speaking || paused) return;
   paused = true;
   try { if (ctx) ctx.suspend(); } catch(e) {}
   try { speechSynthesis.pause(); } catch(e) {}
   pauseLabel();
+}
+$("pause").onclick = () => { if (!speaking) return; if (paused) unpause(); else pauseVoice(); };
+
+/* ---------- study bar under the smart board ---------- */
+// Pause stops the voice AND the drawing steps, so kids can look closely; Continue picks both up where they were.
+var boardHeld = false;
+function studyUI(){
+  const bp = $("bPause"), bc = $("bCont"), be = $("bExplain"); if (!bp) return;
+  const L = t();
+  const moving = !speaking && groups.length > 0 && shown < groups.length && !manual;
+  bp.textContent = L.pause; bc.textContent = L.resume;
+  if ((paused || boardHeld) && readyWhilePaused) { const sm = document.createElement("small"); sm.textContent = L.nextReady; bc.appendChild(sm); }
+  bp.disabled = !((speaking && !paused) || (moving && !boardHeld));
+  bc.disabled = !(paused || boardHeld);
+  bp.classList.toggle("on", paused || boardHeld);
+  bc.classList.toggle("ready", (paused || boardHeld) && readyWhilePaused);
+  be.textContent = explainFor && !$("explain").classList.contains("hide") ? L.hideExplain : L.explainBtn;
+  be.disabled = shown === 0;
+}
+function holdBoard(){ if (speaking) pauseVoice(); boardHeld = true; clearTimeout(pumpTimer); studyUI(); }
+$("bPause").onclick = () => { unlock(); holdBoard(); };
+$("bCont").onclick = () => {
+  unlock();
+  const wasHeld = boardHeld; boardHeld = false;
+  if (paused) unpause();
+  else if (wasHeld && !speaking && shown < groups.length) pump();   // talking is over: the steps carry on
+  readyWhilePaused = false; studyUI();
 };
+var explainFor = null;
+function closeExplain(){ $("explain").classList.add("hide"); explainFor = null; studyUI(); }
+$("bExplain").onclick = async () => {
+  const g = groups[shown - 1]; if (!g) return;
+  const box = $("explain"), L = t();
+  if (explainFor === g && !box.classList.contains("hide")) { closeExplain(); return; }
+  unlock();
+  if (speaking && !paused) holdBoard();   // looking closely: everything waits
+  explainFor = g; box.classList.remove("hide"); studyUI();
+  const key = "_explain_" + lang;
+  if (g[key]) { renderExplain(g[key]); return; }
+  box.innerHTML = ""; const w = document.createElement("div"); w.className = "wait"; w.textContent = L.explaining; box.appendChild(w);
+  const seen = new Set(), words = [];
+  const add = x => { x = String(x || "").replace(/\s+/g, " ").trim(); if (x.length < 2 || /^[\d\s.,%:-]+$/.test(x) || /^(step|paso)\s*\d/i.test(x) || seen.has(x.toLowerCase())) return; seen.add(x.toLowerCase()); words.push(x.slice(0, 50)); };
+  (g._legend || []).forEach(l => add(l.symbol));
+  g.querySelectorAll("text").forEach(el => add(el.textContent));
+  const forms = (g._formulas || []).map(f => f.formula).slice(0, 4);
+  const q = (lesson && lesson.title) || $("title").textContent || "";
+  const qs = `part=explain&v=1&lang=${lang}&level=${level}&q=${encodeURIComponent(norm(q))}&t=&c=${encodeURIComponent(g.dataset.caption || "")}&w=${encodeURIComponent(words.slice(0, 24).join("|"))}&f=${encodeURIComponent(forms.join("||"))}`;
+  let d = null;
+  for (let attempt = 0; attempt < 2 && !d; attempt++) {
+    try { const r = await fetch("/api/ask?" + qs); if (r.ok) { const j = await r.json(); if (j && Array.isArray(j.items)) d = j; } } catch(e) {}
+  }
+  if (explainFor !== g) return;
+  if (!d || (!d.items.length && !(d.formulas || []).length)) { box.innerHTML = ""; const f = document.createElement("div"); f.className = "wait"; f.textContent = L.explainFail; box.appendChild(f); return; }
+  g[key] = d; renderExplain(d);
+};
+function renderExplain(d){
+  const box = $("explain"), L = t(); box.innerHTML = "";
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  box.appendChild(el("div", "lt", L.aboutPic));
+  if (d.overview) box.appendChild(el("p", "ov", d.overview));
+  const row = i => { const p = el("p", "it"); p.appendChild(el("b", "", i.word || i.formula)); p.appendChild(document.createTextNode(i.more)); if (i.why) p.appendChild(el("span", "why", L.whyMatters + i.why)); p.onclick = () => { if (!speaking) sayShort((i.word || i.formula) + ". " + i.more); }; return p; };
+  if (d.items.length) { box.appendChild(el("div", "lt", L.eachWord)); d.items.forEach(i => box.appendChild(row(i))); }
+  if ((d.formulas || []).length) { box.appendChild(el("div", "lt", L.mathWorks)); d.formulas.forEach(i => box.appendChild(row(i))); }
+  const h = el("button", "hidebtn", L.hideBtn); h.onclick = closeExplain; box.appendChild(h);
+}
 
 $("again").onclick = () => { unlock(); if (lastAudio) playBuffer(lastAudio); else speak(); };
 
@@ -1095,6 +1187,7 @@ function startEstimate(total, rate){
   const cps = 14.5 * rate;
   estTimer = setInterval(() => {
     if (!speaking) return;
+    if (typeof paused !== "undefined" && paused) { estStart += 300; return; }   // paused: the read-along waits too
     if (lastBoundary && Date.now() - lastBoundary < 1500) return;
     const ci = Math.min(total - 1, Math.floor((Date.now() - estStart) / 1000 * cps));
     highlight(ci); onProgress(ci / total);
