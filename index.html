@@ -84,11 +84,51 @@ button{font-family:inherit;cursor:pointer}
 .note ul{margin:0 0 6px 18px;padding:0}
 .note li{margin:3px 0}
 @media print{body.print-note *{visibility:hidden}body.print-note #noteCard,body.print-note #noteCard *{visibility:visible}body.print-note #noteCard{position:absolute;left:0;top:0;width:100%;box-shadow:none}body.print-note #noteCard .noprint{display:none}}
+.pathmsg{margin:0 2px 12px;font-weight:800;font-size:17px;color:var(--ink);line-height:1.4}
+.paths{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:700px){.paths{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.drill{background:var(--card);border-radius:var(--radius);padding:14px;margin:0 0 12px;box-shadow:0 4px 16px rgba(80,60,20,.08)}
+.drill .trail{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-weight:900;font-size:16px;margin-bottom:10px}
+.drill .trail .sep{color:var(--soft)}
+.drill .dl{font-weight:800;color:var(--soft);font-size:14px;margin:0 0 8px}
+.drill .dgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+@media (min-width:900px){.drill .dgrid{grid-template-columns:repeat(5,minmax(0,1fr))}}
+.drill .dgrid button{border:2px solid var(--line);background:#fffdf8;border-radius:14px;padding:12px 10px;font:inherit;font-weight:800;font-size:15px;color:var(--ink);text-align:left;min-height:52px}
+.drill .dgrid button:hover{border-color:var(--blue)}
+.drill .drow{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.tools{display:flex;gap:10px;flex:none}
+.tool{display:flex;flex-direction:column;align-items:center;gap:4px}
+.tool span{font-size:12.5px;font-weight:800;color:var(--soft)}
+.mic.upl{background:#8250df;box-shadow:0 4px 0 #5e3aa8}
+.photo .fname{font-weight:800;font-size:15px}
+.accnote{font-size:12.5px;color:var(--soft);font-weight:700;margin:6px 0 0}
+.card .accnote{font-size:12.5px!important;line-height:1.4!important}
+.another{border:0;background:none;color:var(--blue-d);font-weight:800;font-size:14px;padding:6px 0;cursor:pointer}
+.wgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:560px){.wgrid{grid-template-columns:1fr}}
+.wgrid figure{margin:0}
+.wgrid img{width:100%;height:auto;border-radius:12px;display:block;background:#f2ede3}
+.wgrid figcaption{font-weight:800;font-size:15px;margin-top:6px}
+.wgrid .credit{font-size:12px!important}
+.test .tq{font-size:13px;font-weight:900;color:var(--soft);text-transform:uppercase;letter-spacing:.05em}
+.test .tt{font-size:20px;font-weight:900;margin:6px 0 12px;line-height:1.35}
+.test .topts{display:grid;gap:8px}
+.test .topts button{border:3px solid var(--line);background:#fffdf8;border-radius:14px;padding:12px 14px;font:inherit;font-weight:800;font-size:17px;text-align:left;color:var(--ink)}
+.test .topts button.right{border-color:var(--green);background:#f0fbf3}
+.test .topts button.wrong{border-color:var(--red);background:#fff2f1}
+.test .tfb{margin-top:10px;font-weight:800;font-size:16px;line-height:1.45}
+.test .tbig{font-size:30px;font-weight:900;color:var(--green)}
+.test ul{margin:8px 0 0 18px;padding:0}.test li{margin:6px 0;line-height:1.4}
+.test .trow{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+/* Teens: a calmer, grown-up look */
+body.teen{--bg:#f3f5f8;--line:#dfe4eb;--bezel:#26303c}
+body.teen .chip,body.teen .paths button{border-radius:12px}
+body.teen .brand span{color:#3b6fd8}
 .chip{border:2px solid var(--line);background:var(--card);border-radius:999px;padding:8px 14px;font-weight:800;font-size:15px;color:var(--ink)}
 .chip:hover{border-color:var(--blue);color:var(--blue)}
 
 /* classroom */
-.room{display:grid;grid-template-columns:1.65fr 1fr;gap:16px;align-items:start}
+.room{display:grid;grid-template-columns:1fr;gap:16px;align-items:start}
 .board-wrap{background:var(--bezel);border-radius:24px;padding:14px 14px 10px;box-shadow:0 8px 24px rgba(30,40,60,.25)}
 .board{position:relative;background:#fff;border-radius:12px;overflow:hidden;aspect-ratio:8/5}
 .board svg{width:100%;height:100%;display:block}
@@ -172,7 +212,8 @@ button{font-family:inherit;cursor:pointer}
 }
 @media (max-width:560px){
   .ask{flex-wrap:wrap}
-  .mic{width:60px;height:60px;font-size:26px}
+  .mic{width:56px;height:56px;font-size:24px}
+  .tools{width:100%;justify-content:center;gap:18px}
   .field{flex-basis:100%;order:3}
   .go{order:4}
   .go{width:100%;height:54px}
@@ -285,6 +326,7 @@ body.present .caption{font-size:clamp(22px,2vw,30px)}
       <div class="levels" role="group" aria-label="Choose your grade">
         <button id="lvLittle" class="on"></button>
         <button id="lvBig"></button>
+        <button id="lvTeen"></button>
       </div>
     </div>
   </div>
@@ -293,16 +335,23 @@ body.present .caption{font-size:clamp(22px,2vw,30px)}
     <button data-mode="curious" class="on"><span class="pi">🤔</span><b id="pCur"></b><small id="pCurS"></small></button>
     <button data-mode="skill"><span class="pi">📘</span><b id="pSkill"></b><small id="pSkillS"></small></button>
     <button data-mode="work"><span class="pi">📸</span><b id="pWork"></b><small id="pWorkS"></small></button>
+    <button data-mode="why"><span class="pi">🌎</span><b id="pWhy"></b><small id="pWhyS"></small></button>
   </div>
+  <p class="pathmsg" id="pathMsg"></p>
   <div class="subjects hide" id="subjects"></div>
+  <div class="drill hide" id="drill"></div>
   <div class="ask">
-    <button class="mic" id="mic" aria-label="Talk to Mr. Paul">🎤</button>
-    <button class="mic cam" id="cam" aria-label="Add a picture">📷</button>
-    <input type="file" id="camFile" accept="image/*" hidden>
+    <div class="tools">
+      <div class="tool"><button class="mic" id="mic" aria-label="Talk to Mr. Paul">🎤</button><span id="tTalk"></span></div>
+      <div class="tool"><button class="mic cam" id="cam" aria-label="Snap a photo">📷</button><span id="tSnap"></span></div>
+      <div class="tool"><button class="mic upl" id="upl" aria-label="Upload a file">📎</button><span id="tUpload"></span></div>
+    </div>
+    <input type="file" id="camFile" accept="image/*" capture="environment" hidden>
+    <input type="file" id="uplFile" accept="image/*,.pdf,application/pdf,.docx,.txt,text/plain" hidden>
     <div class="field">
       <input id="q" maxlength="200" autocomplete="off">
       <div class="hint" id="hint"></div>
-      <div class="photo hide" id="photoBox"><img id="photoImg" alt=""><button id="photoX"></button></div>
+      <div class="photo hide" id="photoBox"><img id="photoImg" alt=""><span class="fname hide" id="fileName"></span><button id="photoX"></button></div>
     </div>
     <button class="go" id="go"></button>
   </div>
@@ -331,7 +380,7 @@ body.present .caption{font-size:clamp(22px,2vw,30px)}
       <div class="explain hide" id="explain" aria-live="polite"></div>
     </div>
 
-    <div class="panel">
+    <div class="panel hide" id="panel">
       <h2 id="title"></h2>
       <div class="read" id="read"></div>
       <div class="playrow hide" id="playrow">
@@ -350,7 +399,10 @@ body.present .caption{font-size:clamp(22px,2vw,30px)}
       <h3 id="hImg"></h3>
       <img id="img" alt="">
       <p class="credit" id="credit"></p>
+      <p class="accnote" id="imgNote"></p>
+      <button class="another" id="imgAnother"></button>
     </div>
+    <div class="card why-photos hide" id="whyCard" style="grid-column:1/-1"><h3 id="hWhyPhotos"></h3><div class="wgrid" id="wGrid"></div><p class="accnote" id="wNote"></p></div>
     <div class="card wow hide" id="wowCard"><h3 id="hWow"></h3><p id="wow"></p></div>
     <div class="card tryit hide" id="tryCard"><h3 id="hTry"></h3><p id="try"></p></div>
   </div>
@@ -369,6 +421,8 @@ body.present .caption{font-size:clamp(22px,2vw,30px)}
     <div class="pscore" id="pScore"></div>
   </div>
 
+  <div class="card test hide" id="testCard" aria-live="polite"></div>
+
   <div class="card deeper hide" id="deepCard">
     <div class="study">
       <div class="sl" id="viewsLabel"></div>
@@ -383,6 +437,7 @@ body.present .caption{font-size:clamp(22px,2vw,30px)}
         <button class="chip" data-a="walk" id="hWalk"></button>
         <button class="chip" data-a="hint" id="hHint"></button>
         <button class="chip" data-a="practice" id="hPractice"></button>
+        <button class="chip" data-a="test" id="hTest"></button>
         <button class="chip" data-a="check" id="hCheck"></button>
       </div>
       <div class="checkbox hide" id="checkBox"><textarea id="checkText"></textarea><button class="btn" id="checkGo"></button></div>
@@ -427,7 +482,7 @@ const T = {
     another: "Ask another question anytime!", tapAgain: "Tap Ask to try again.", watch: "Watch the board!", start: "Ask a question to start!",
     step: "Step", legend: "🔤 What these mean", mathWorks: "🧮 How the math works", welcomeTitle: "Hi, I'm Mr. Paul! 👋",
     welcomeText: "Ask me a question with your voice or by typing. I'll explain it, draw it on my smart board, and then we'll do a quick quiz together!",
-    again: "🔊 Hear it again", stop: "⏹ Stop", pause: "⏸ Pause", resume: "▶ Continue", startOver: "⟲ Start over", pCur: "I'm curious", pCurS: "Ask anything", pSkill: "Learn a skill", pSkillS: "A lesson + practice", pWork: "Help with my work", pWorkS: "Hints, not answers", phSkill: "What skill? Like: adding fractions", phWork: "Type the problem, or tap 📷 to snap it", pickSubject: "Subject:", subjects: ["Math", "Reading", "Writing", "Science", "Social Studies", "Spelling & Grammar"], viewsLabel: "See it another way", vIdea: "💡 The idea", vReal: "🌎 Real life", vHome: "🏠 Try it at home", helpsLabel: "Need more help?", hAnother: "🔄 Another way", hWalk: "🪜 Walk me through it", hHint: "💬 Give me a hint", hPractice: "✏️ Practice problems", hCheck: "✅ Check my work", checkPh: "Type your answer and how you got it…", checkGo: "Check it", checking: "Mr. Paul is checking…", vRight: "✅ You got it! ", vPartly: "🟡 Almost! ", vNot: "🔁 Not yet. ", checkFail: "Oops, couldn't check right now. Try again in a moment.", hPrac: "✏️ Practice time", pCheck: "Check", pHintB: "Hint", pShow: "Show answer", pRight: "✅ Yes! Great job!", pWrong: "Not quite. Try again, or tap Hint.", pAns: "Answer: ", pScore: (r, n) => `${r} of ${n} right`, pPh: "Your answer", noteBtn: "📝 Note for my grown-up", noteTitle: "Today's learning with Mr. Paul", noteTopics: "What we worked on", noteNext: "Try next", notePrint: "🖨 Print", noteCopy: "📋 Copy", noteCopied: "Copied!", noteClose: "Close", modeNames: { curious: "Curious question", skill: "Skill lesson", work: "Help with work" }, actNames: { idea: "the idea", real: "real life", home: "try it at home", another: "another way", walk: "step by step", hint: "a hint", practice: "practice" }, notePrac: "Practice", noteChecks: "Work checked", noteHints: "Hints used", noteNone: "none", explainBtn: "📖 Explain this picture", hideExplain: "📖 Hide explanation", hideBtn: "Hide explanation", nextReady: "next step ready", explaining: "Mr. Paul is getting the explanation ready… just a few seconds!", explainFail: "Oops, that didn't work. Tap the button again in a moment.", aboutPic: "About this picture", eachWord: "What each word means", whyMatters: "Why it matters: ", print: "🖨️ Print", helpful: "Helpful?", thanks: "Thanks! 💛",
+    again: "🔊 Hear it again", stop: "⏹ Stop", pause: "⏸ Pause", resume: "▶ Continue", startOver: "⟲ Start over", teen: "Grades 7–12<small>Teens</small>", pWhy: "Why learn this?", pWhyS: "Real life & jobs", phWhy: "Type a topic, like area or algebra", teenSubjects: ["Algebra", "Geometry", "Biology", "Chemistry", "U.S. History", "Essay Writing"], hintSkill: "Pick a subject above, or type the skill you want to learn.", hintWork: "Snap a photo of your work, upload a file, or type the problem.", hintWhy: "Type a topic, snap a page, or upload a file. I'll show you why it matters!", tTalk: "Talk", tSnap: "Snap", tUpload: "Upload", explainFile: "Help me with this file", fileReady: "Got your file! Tap Ask, or type what you need help with.", fileTooBig: "That file is too big. Try one under 3 MB, or snap a photo.", fileBad: "I can read photos, PDFs, Word files and text files.", fileReading: "Reading your file…", fileRemove: "✕ Remove file", drillTopics: "Pick a topic", drillSub: "Pick one to learn", drillOwn: "✏️ Choose your own", drillOwnPh: "Type your own topic…", drillMore: "🔄 Show me 10 more", drillBack: "◀ Back", drillLoading: "Finding topics…", drillTest: n => `📝 Test me on ${n}`, drillFail: "Couldn't load topics. Tap the subject again.", hTest: "📝 Test me", testLoading: "Mr. Paul is writing your test…", testNext: "Next ▶", testFinish: "See my score", testScore: (r, n) => `${r} out of ${n}!`, testGreat: "Great job!", testGood: "Nice work!", testKeep: "Keep practicing. You're learning!", testMissed: "Let's review these:", testReview: "🔁 Review what I missed", testNew: "🔄 New test", testFail: "Couldn't make a test right now. Try again in a moment.", testRight: "✅ Right! ", testWrong: "❌ Not quite. ", testAns: "Answer: ", testQ: (i, n) => `Question ${i} of ${n}`, testCheck: "Check", testTitle: x => `📝 Test: ${x}`, noteTests: "Tests", accNote: "Pictures are matched automatically and may not be exact.", anotherPhoto: "Show another photo ›", hWhyPhotos: "🌎 In real life", pathMsg: { curious: "🤔 Ask me anything! I'll explain it, draw it, and quiz you.", skill: "📘 Pick a subject and a topic, or type a skill. I'll teach it, then you practice.", work: "📸 Stuck? Snap your work, upload a file, or type the problem. I'll help you figure it out.", why: "🌎 Ever wonder why we learn this? Tell me a topic and I'll show you how it's used in real life and real jobs." }, wm: { curious: { b3: "Ask anything!", c: ["Ask me anything!", "I'll explain it and draw it.", "Then a quick quiz!"] }, skill: { b3: "Learn a skill!", c: ["Pick a subject.", "Choose a topic, or type your own.", "Learn it, then practice!"] }, work: { b3: "Let's figure it out!", c: ["Snap or upload your work.", "I'll explain how it works.", "You finish it. I'll check it!"] }, why: { b3: "Why learn this?", c: ["Tell me a topic.", "See it in real life and real jobs.", "Try a real-world problem!"] } }, pCur: "I'm curious", pCurS: "Ask anything", pSkill: "Learn a skill", pSkillS: "A lesson + practice", pWork: "Help with my work", pWorkS: "Hints, not answers", phSkill: "What skill? Like: adding fractions", phWork: "Type the problem, or tap 📷 to snap it", pickSubject: "Subject:", subjects: ["Math", "ELA (English)", "Reading", "Writing", "Science", "Social Studies", "Music & Art"], viewsLabel: "See it another way", vIdea: "💡 The idea", vReal: "🌎 Real life", vHome: "🏠 Try it at home", helpsLabel: "Need more help?", hAnother: "🔄 Another way", hWalk: "🪜 Walk me through it", hHint: "💬 Give me a hint", hPractice: "✏️ Practice problems", hCheck: "✅ Check my work", checkPh: "Type your answer and how you got it…", checkGo: "Check it", checking: "Mr. Paul is checking…", vRight: "✅ You got it! ", vPartly: "🟡 Almost! ", vNot: "🔁 Not yet. ", checkFail: "Oops, couldn't check right now. Try again in a moment.", hPrac: "✏️ Practice time", pCheck: "Check", pHintB: "Hint", pShow: "Show answer", pRight: "✅ Yes! Great job!", pWrong: "Not quite. Try again, or tap Hint.", pAns: "Answer: ", pScore: (r, n) => `${r} of ${n} right`, pPh: "Your answer", noteBtn: "📝 Note for my grown-up", noteTitle: "Today's learning with Mr. Paul", noteTopics: "What we worked on", noteNext: "Try next", notePrint: "🖨 Print", noteCopy: "📋 Copy", noteCopied: "Copied!", noteClose: "Close", modeNames: { curious: "Curious question", skill: "Skill lesson", work: "Help with work", why: "Why learn this?" }, actNames: { idea: "the idea", real: "real life", home: "try it at home", another: "another way", walk: "step by step", hint: "a hint", practice: "practice", review: "review" }, notePrac: "Practice", noteChecks: "Work checked", noteHints: "Hints used", noteNone: "none", explainBtn: "📖 Explain this picture", hideExplain: "📖 Hide explanation", hideBtn: "Hide explanation", nextReady: "next step ready", explaining: "Mr. Paul is getting the explanation ready… just a few seconds!", explainFail: "Oops, that didn't work. Tap the button again in a moment.", aboutPic: "About this picture", eachWord: "What each word means", whyMatters: "Why it matters: ", print: "🖨️ Print", helpful: "Helpful?", thanks: "Thanks! 💛",
     hImg: "📷 What it looks like", hWow: "⭐ Surprise Fact!", hTry: "🧪 Try It at Home", hQuiz: "✏️ Quick Check",
     gotIt: "🎉 You got it! ", goodTry: "Good try! Pick another one.", answerKey: "Answer: ",
     hDeep: "🔍 Keep learning!", askAbout: "💬 Ask about this", tellMore: "➕ Tell me more", orTry: "Or try one of these:",
@@ -442,7 +497,8 @@ const T = {
     q1: "What do you want to learn?", tellAdult: "Tell a grown-up you trust",
     starters: {
       little: ["Why is the sky blue?","How do bees make honey?","Why do cats purr?","What makes a rainbow?","How do fish breathe underwater?","Why does the moon change shape?","Where does rain come from?","Why do leaves change color?"],
-      big: ["How do volcanoes erupt?","How does a plane stay in the air?","What is a fraction?","Why do we have seasons?","How do magnets work?","How does the heart pump blood?","What is gravity?","How do you find the area of a rectangle?"]
+      big: ["How do volcanoes erupt?","How does a plane stay in the air?","What is a fraction?","Why do we have seasons?","How do magnets work?","How does the heart pump blood?","What is gravity?","How do you find the area of a rectangle?"],
+      teen: ["How does compound interest work?","What is the Pythagorean theorem?","How do vaccines train the immune system?","Why did World War I start?","How do I write a strong thesis statement?","What is the slope of a line?"]
     }
   },
   es: {
@@ -457,7 +513,7 @@ const T = {
     another: "¡Haz otra pregunta cuando quieras!", tapAgain: "Toca Preguntar para intentar otra vez.", watch: "¡Mira la pizarra!", start: "¡Haz una pregunta para empezar!",
     step: "Paso", legend: "🔤 Qué significan", mathWorks: "🧮 Cómo funcionan las matemáticas", welcomeTitle: "¡Hola, soy Mr. Paul! 👋",
     welcomeText: "Hazme una pregunta con tu voz o escribiendo. Te la explico, la dibujo en mi pizarra, ¡y luego hacemos un juego de preguntas!",
-    again: "🔊 Escuchar otra vez", stop: "⏹ Parar", pause: "⏸ Pausa", resume: "▶ Seguir", startOver: "⟲ Empezar de nuevo", pCur: "Tengo curiosidad", pCurS: "Pregunta lo que sea", pSkill: "Aprender algo", pSkillS: "Lección + práctica", pWork: "Ayuda con mi tarea", pWorkS: "Pistas, no respuestas", phSkill: "¿Qué quieres aprender? Ej.: sumar fracciones", phWork: "Escribe el problema, o toca 📷 para tomarle foto", pickSubject: "Materia:", subjects: ["Matemáticas", "Lectura", "Escritura", "Ciencias", "Estudios sociales", "Ortografía y gramática"], viewsLabel: "Míralo de otra forma", vIdea: "💡 La idea", vReal: "🌎 En la vida real", vHome: "🏠 Pruébalo en casa", helpsLabel: "¿Necesitas más ayuda?", hAnother: "🔄 Otra forma", hWalk: "🪜 Paso a paso", hHint: "💬 Dame una pista", hPractice: "✏️ Problemas de práctica", hCheck: "✅ Revisa mi trabajo", checkPh: "Escribe tu respuesta y cómo llegaste a ella…", checkGo: "Revisar", checking: "Mr. Paul está revisando…", vRight: "✅ ¡Lo lograste! ", vPartly: "🟡 ¡Casi! ", vNot: "🔁 Todavía no. ", checkFail: "Uy, no pude revisar ahora. Intenta otra vez en un momento.", hPrac: "✏️ Hora de practicar", pCheck: "Revisar", pHintB: "Pista", pShow: "Ver respuesta", pRight: "✅ ¡Sí! ¡Muy bien!", pWrong: "Casi. Intenta otra vez o toca Pista.", pAns: "Respuesta: ", pScore: (r, n) => `${r} de ${n} correctas`, pPh: "Tu respuesta", noteBtn: "📝 Nota para mi adulto", noteTitle: "Lo que aprendimos hoy con Mr. Paul", noteTopics: "En qué trabajamos", noteNext: "Para la próxima", notePrint: "🖨 Imprimir", noteCopy: "📋 Copiar", noteCopied: "¡Copiado!", noteClose: "Cerrar", modeNames: { curious: "Pregunta curiosa", skill: "Lección", work: "Ayuda con tarea" }, actNames: { idea: "la idea", real: "vida real", home: "pruébalo en casa", another: "otra forma", walk: "paso a paso", hint: "una pista", practice: "práctica" }, notePrac: "Práctica", noteChecks: "Trabajo revisado", noteHints: "Pistas usadas", noteNone: "ninguno", explainBtn: "📖 Explícame el dibujo", hideExplain: "📖 Ocultar explicación", hideBtn: "Ocultar explicación", nextReady: "siguiente paso listo", explaining: "Mr. Paul está preparando la explicación… ¡solo unos segundos!", explainFail: "Uy, no funcionó. Toca el botón otra vez en un momento.", aboutPic: "Sobre este dibujo", eachWord: "Qué significa cada palabra", whyMatters: "Por qué importa: ", print: "🖨️ Imprimir", helpful: "¿Te ayudó?", thanks: "¡Gracias! 💛",
+    again: "🔊 Escuchar otra vez", stop: "⏹ Parar", pause: "⏸ Pausa", resume: "▶ Seguir", startOver: "⟲ Empezar de nuevo", teen: "Grados 7–12<small>Adolescentes</small>", pWhy: "¿Para qué sirve?", pWhyS: "Vida real y trabajos", phWhy: "Escribe un tema, como área o álgebra", teenSubjects: ["Álgebra", "Geometría", "Biología", "Química", "Historia de EE. UU.", "Ensayos"], hintSkill: "Elige una materia arriba, o escribe lo que quieres aprender.", hintWork: "Toma una foto de tu tarea, sube un archivo, o escribe el problema.", hintWhy: "Escribe un tema, toma una foto o sube un archivo. ¡Te muestro para qué sirve!", tTalk: "Hablar", tSnap: "Foto", tUpload: "Subir", explainFile: "Ayúdame con este archivo", fileReady: "¡Tengo tu archivo! Toca Preguntar, o escribe en qué necesitas ayuda.", fileTooBig: "Ese archivo es muy grande. Prueba uno de menos de 3 MB, o toma una foto.", fileBad: "Puedo leer fotos, PDF, archivos de Word y de texto.", fileReading: "Leyendo tu archivo…", fileRemove: "✕ Quitar archivo", drillTopics: "Elige un tema", drillSub: "Elige uno para aprender", drillOwn: "✏️ Escribe el tuyo", drillOwnPh: "Escribe tu propio tema…", drillMore: "🔄 Muéstrame 10 más", drillBack: "◀ Atrás", drillLoading: "Buscando temas…", drillTest: n => `📝 Ponme a prueba: ${n}`, drillFail: "No pude cargar los temas. Toca la materia otra vez.", hTest: "📝 Ponme a prueba", testLoading: "Mr. Paul está escribiendo tu prueba…", testNext: "Siguiente ▶", testFinish: "Ver mi puntaje", testScore: (r, n) => `¡${r} de ${n}!`, testGreat: "¡Muy bien!", testGood: "¡Buen trabajo!", testKeep: "Sigue practicando. ¡Estás aprendiendo!", testMissed: "Repasemos estas:", testReview: "🔁 Repasar lo que fallé", testNew: "🔄 Nueva prueba", testFail: "No pude hacer la prueba ahora. Intenta en un momento.", testRight: "✅ ¡Correcto! ", testWrong: "❌ Casi. ", testAns: "Respuesta: ", testQ: (i, n) => `Pregunta ${i} de ${n}`, testCheck: "Revisar", testTitle: x => `📝 Prueba: ${x}`, noteTests: "Pruebas", accNote: "Las imágenes se eligen automáticamente y pueden no ser exactas.", anotherPhoto: "Mostrar otra foto ›", hWhyPhotos: "🌎 En la vida real", pathMsg: { curious: "🤔 ¡Pregúntame lo que sea! Te lo explico, lo dibujo y te hago preguntas.", skill: "📘 Elige una materia y un tema, o escribe lo que quieres aprender. Te lo enseño y luego practicas.", work: "📸 ¿Atorado? Toma una foto, sube un archivo o escribe el problema. Te ayudo a resolverlo.", why: "🌎 ¿Para qué aprendemos esto? Dime un tema y te muestro cómo se usa en la vida real y en el trabajo." }, wm: { curious: { b3: "¡Pregunta lo que quieras!", c: ["¡Pregúntame lo que sea!", "Te lo explico y lo dibujo.", "¡Luego unas preguntas!"] }, skill: { b3: "¡Aprende algo nuevo!", c: ["Elige una materia.", "Elige un tema, o escribe el tuyo.", "¡Apréndelo y practica!"] }, work: { b3: "¡Vamos a resolverlo!", c: ["Toma una foto o sube tu tarea.", "Te explico cómo funciona.", "Tú lo terminas. ¡Yo lo reviso!"] }, why: { b3: "¿Para qué sirve?", c: ["Dime un tema.", "Míralo en la vida real y en trabajos.", "¡Prueba un problema real!"] } }, pCur: "Tengo curiosidad", pCurS: "Pregunta lo que sea", pSkill: "Aprender algo", pSkillS: "Lección + práctica", pWork: "Ayuda con mi tarea", pWorkS: "Pistas, no respuestas", phSkill: "¿Qué quieres aprender? Ej.: sumar fracciones", phWork: "Escribe el problema, o toca 📷 para tomarle foto", pickSubject: "Materia:", subjects: ["Matemáticas", "Lenguaje (Inglés)", "Lectura", "Escritura", "Ciencias", "Estudios sociales", "Música y Arte"], viewsLabel: "Míralo de otra forma", vIdea: "💡 La idea", vReal: "🌎 En la vida real", vHome: "🏠 Pruébalo en casa", helpsLabel: "¿Necesitas más ayuda?", hAnother: "🔄 Otra forma", hWalk: "🪜 Paso a paso", hHint: "💬 Dame una pista", hPractice: "✏️ Problemas de práctica", hCheck: "✅ Revisa mi trabajo", checkPh: "Escribe tu respuesta y cómo llegaste a ella…", checkGo: "Revisar", checking: "Mr. Paul está revisando…", vRight: "✅ ¡Lo lograste! ", vPartly: "🟡 ¡Casi! ", vNot: "🔁 Todavía no. ", checkFail: "Uy, no pude revisar ahora. Intenta otra vez en un momento.", hPrac: "✏️ Hora de practicar", pCheck: "Revisar", pHintB: "Pista", pShow: "Ver respuesta", pRight: "✅ ¡Sí! ¡Muy bien!", pWrong: "Casi. Intenta otra vez o toca Pista.", pAns: "Respuesta: ", pScore: (r, n) => `${r} de ${n} correctas`, pPh: "Tu respuesta", noteBtn: "📝 Nota para mi adulto", noteTitle: "Lo que aprendimos hoy con Mr. Paul", noteTopics: "En qué trabajamos", noteNext: "Para la próxima", notePrint: "🖨 Imprimir", noteCopy: "📋 Copiar", noteCopied: "¡Copiado!", noteClose: "Cerrar", modeNames: { curious: "Pregunta curiosa", skill: "Lección", work: "Ayuda con tarea", why: "¿Para qué sirve?" }, actNames: { idea: "la idea", real: "vida real", home: "pruébalo en casa", another: "otra forma", walk: "paso a paso", hint: "una pista", practice: "práctica", review: "repaso" }, notePrac: "Práctica", noteChecks: "Trabajo revisado", noteHints: "Pistas usadas", noteNone: "ninguno", explainBtn: "📖 Explícame el dibujo", hideExplain: "📖 Ocultar explicación", hideBtn: "Ocultar explicación", nextReady: "siguiente paso listo", explaining: "Mr. Paul está preparando la explicación… ¡solo unos segundos!", explainFail: "Uy, no funcionó. Toca el botón otra vez en un momento.", aboutPic: "Sobre este dibujo", eachWord: "Qué significa cada palabra", whyMatters: "Por qué importa: ", print: "🖨️ Imprimir", helpful: "¿Te ayudó?", thanks: "¡Gracias! 💛",
     hImg: "📷 Así se ve", hWow: "⭐ ¡Dato sorpresa!", hTry: "🧪 Pruébalo en casa", hQuiz: "✏️ Repaso rápido",
     gotIt: "🎉 ¡Muy bien! ", goodTry: "¡Buen intento! Elige otra.", answerKey: "Respuesta: ",
     hDeep: "🔍 ¡Sigue aprendiendo!", askAbout: "💬 Pregunta sobre esto", tellMore: "➕ Cuéntame más", orTry: "O prueba una de estas:",
@@ -472,7 +528,8 @@ const T = {
     q1: "¿Qué quieres aprender?", tellAdult: "Díselo a un adulto de confianza",
     starters: {
       little: ["¿Por qué el cielo es azul?","¿Cómo hacen miel las abejas?","¿Por qué ronronean los gatos?","¿Cómo se forma un arcoíris?","¿Cómo respiran los peces?","¿Por qué cambia la luna de forma?","¿De dónde viene la lluvia?","¿Por qué cambian de color las hojas?"],
-      big: ["¿Cómo hacen erupción los volcanes?","¿Cómo vuela un avión?","¿Qué es una fracción?","¿Por qué hay estaciones?","¿Cómo funcionan los imanes?","¿Cómo bombea sangre el corazón?","¿Qué es la gravedad?","¿Cómo se calcula el área de un rectángulo?"]
+      big: ["¿Cómo hacen erupción los volcanes?","¿Cómo vuela un avión?","¿Qué es una fracción?","¿Por qué hay estaciones?","¿Cómo funcionan los imanes?","¿Cómo bombea sangre el corazón?","¿Qué es la gravedad?","¿Cómo se calcula el área de un rectángulo?"],
+      teen: ["¿Cómo funciona el interés compuesto?","¿Qué es el teorema de Pitágoras?","¿Cómo entrenan las vacunas al sistema inmune?","¿Por qué empezó la Primera Guerra Mundial?","¿Cómo escribo una buena tesis?","¿Qué es la pendiente de una recta?"]
     }
   }
 };
@@ -490,7 +547,7 @@ function track(name, data){ try { window.va("event", { name, data }); } catch(e)
 function applyText(){
   const L = t();
   document.documentElement.lang = lang;
-  $("brand").innerHTML = L.brand; $("lvLittle").innerHTML = L.little; $("lvBig").innerHTML = L.big;
+  $("brand").innerHTML = L.brand; $("lvLittle").innerHTML = L.little; $("lvBig").innerHTML = L.big; $("lvTeen").innerHTML = L.teen;
   $("vMan").textContent = L.man; $("vWoman").textContent = L.woman;
   $("present").textContent = document.body.classList.contains("present") ? L.presentOff : L.present;
   $("q").placeholder = L.placeholder; $("go").textContent = L.ask;
@@ -514,7 +571,10 @@ function setLang(l){
 }
 function setLevel(l){
   level = l;
-  $("lvLittle").classList.toggle("on", l === "little"); $("lvBig").classList.toggle("on", l === "big");
+  $("lvLittle").classList.toggle("on", l === "little"); $("lvBig").classList.toggle("on", l === "big"); $("lvTeen").classList.toggle("on", l === "teen");
+  document.body.classList.toggle("teen", l === "teen");
+  try { localStorage.setItem("mpc_level", l); } catch(e) {}
+  if (typeof pathText === "function") { if (typeof drill !== "undefined" && drill) closeDrill(); pathText(); }
   renderStarters();
 }
 function renderStarters(){
@@ -527,6 +587,7 @@ function renderStarters(){
 }
 $("lvLittle").onclick = () => setLevel("little");
 $("lvBig").onclick = () => setLevel("big");
+$("lvTeen").onclick = () => setLevel("teen");
 $("lnEn").onclick = () => setLang("en");
 $("lnEs").onclick = () => setLang("es");
 
@@ -599,12 +660,15 @@ $("q").addEventListener("keydown", e => { if (e.key === "Enter") goAsk(); });
 let photo = null;
 function clearPhoto(){
   photo = null; $("photoBox").classList.add("hide"); $("photoImg").removeAttribute("src"); $("camFile").value = "";
-  if ($("q").value === t().explainPic) $("q").value = "";
+  if (typeof docFile !== "undefined") docFile = null;
+  $("uplFile").value = ""; $("fileName").classList.add("hide"); $("photoImg").classList.remove("hide");
+  if ($("q").value === t().explainPic || $("q").value === t().explainFile) $("q").value = "";
 }
 $("cam").onclick = () => { unlock(); $("camFile").click(); };
 $("photoX").onclick = clearPhoto;
-$("camFile").onchange = () => {
-  const f = $("camFile").files && $("camFile").files[0]; if (!f) return;
+$("camFile").onchange = () => { const f = $("camFile").files && $("camFile").files[0]; if (f) handleImage(f); };
+function handleImage(f){
+  docFile = null; $("fileName").classList.add("hide"); $("photoImg").classList.remove("hide");
   const url = URL.createObjectURL(f), img = new Image();
   img.onload = () => {
     const max = 1280, k = Math.min(1, max / Math.max(img.width, img.height));
@@ -618,7 +682,7 @@ $("camFile").onchange = () => {
   };
   img.onerror = () => URL.revokeObjectURL(url);
   img.src = url;
-};
+}
 
 /* ---------- follow-up box (Ask about this / Tell me more) right under the buttons ---------- */
 let followMode = "", followTitle = "", followPrev = "";
@@ -663,12 +727,12 @@ function toBoard(){
 const norm = s => s.toLowerCase().replace(/[?!.¿¡,]+/g, " ").replace(/\s+/g, " ").trim();
 async function fetchPart(part, question, context, opts){
   let r;
-  if (!context && !opts.more && !opts.image) {
-    const url = `/api/ask?part=${part}&level=${level}&lang=${lang}&v=7&q=${encodeURIComponent(norm(question))}${curMode !== "curious" ? `&mode=${curMode}&subject=${encodeURIComponent(curSubject)}` : ""}`;
+  if (!context && !opts.more && !opts.image && !opts.pdf && !opts.doctext) {
+    const url = `/api/ask?part=${part}&level=${level}&lang=${lang}&v=7&q=${encodeURIComponent(norm(question))}${curMode !== "curious" ? `&mode=${curMode}&subject=${encodeURIComponent(curMode === "why" ? "" : curSubject)}` : ""}`;
     r = await fetch(url);
   } else {
     r = await fetch("/api/ask", { method:"POST", headers:{ "content-type":"application/json" },
-      body: JSON.stringify({ part, question, level, lang, context: context || "", more: !!opts.more, prev: opts.prev || "", image: opts.image || "", mode: curMode, subject: curSubject, action: opts.action || "" }) });
+      body: JSON.stringify({ part, question, level, lang, context: context || "", more: !!opts.more, prev: opts.prev || "", image: opts.image || "", pdf: opts.pdf || "", doctext: opts.doctext || "", mode: curMode, subject: curMode === "why" ? "" : curSubject, action: opts.action || "" }) });
   }
   const d = await r.json().catch(() => null);
   return { ok: r.ok, status: r.status, d };
@@ -750,6 +814,7 @@ async function ask(text, context, opts){
   followUp = "";
   let question = (text || $("q").value).trim();
   if (!text && photo && !context && !opts.more) { opts.image = photo; if (!question) question = t().explainPic; }
+  if (!text && docFile && !context && !opts.more) { if (docFile.kind === "pdf") opts.pdf = docFile.data; else opts.doctext = docFile.text; if (!question) question = t().explainFile; }
   if (!question || busy) return;
   if (!opts.more) pendingMore = null;
   if (text) $("q").value = text;
@@ -776,6 +841,7 @@ async function ask(text, context, opts){
   try {
     if (!data) throw new Error(reason);
     if (opts.image) { clearPhoto(); opts.boardTitle = data.title || "the picture"; }
+    if (opts.pdf || opts.doctext) { clearPhoto(); opts.boardTitle = data.title || "the file"; }
     lesson = data; lesson._action = opts.action || ""; render(); logLesson(lesson, opts);
     if (opts.scroll) toBoard();
     $("hint").textContent = t().another;
@@ -818,6 +884,7 @@ async function ask(text, context, opts){
 function render(){
   const L = lesson, isLesson = L.type === "lesson", S = t();
   $("title").textContent = L.title || "";
+  $("panel").classList.remove("hide");
   speech = (L.answer || []).join(" ");
   words = []; let offset = 0; const read = $("read"); read.innerHTML = "";
   pStarts = [];
@@ -844,15 +911,16 @@ function render(){
   if (!isLesson) { boardOff = true; clearTimeout(pumpTimer); }
 
   const ex = $("extras"); ex.classList.add("hide");
-  ["imgCard","wowCard","tryCard","quizCard","deepCard","practiceCard"].forEach(id => $(id).classList.add("hide"));
+  ["imgCard","wowCard","tryCard","quizCard","deepCard","practiceCard","whyCard","testCard"].forEach(id => $(id).classList.add("hide"));
   if (isLesson) renderPractice(L.practice || []);
   $("checkBox").classList.add("hide"); $("checkFb").textContent = "";
   ["idea","real","home"].forEach(a => { const b = document.querySelector('#views [data-a="' + a + '"]'); if (b) b.classList.toggle("on", (L._action || "idea") === a); });
   if (isLesson) {
     if (L.wow) { $("wow").textContent = L.wow; $("wowCard").classList.remove("hide"); ex.classList.remove("hide"); }
     if (L.try_it) { $("try").textContent = L.try_it; $("tryCard").classList.remove("hide"); ex.classList.remove("hide"); }
+    mainSeen = []; mainQ = ""; $("imgAnother").classList.remove("hide");
     if (L.image_query) loadImage(L.image_query);
-    if (L.quiz && L.quiz.options && L.quiz.options.length) buildQuiz(L.quiz);
+    renderWhyPhotos(L.photos || []);
     const row = $("deeper"); row.innerHTML = "";
     (L.deeper || []).slice(0, 3).forEach(q => { const b = document.createElement("button"); b.className = "chip"; b.textContent = q; b.onclick = () => { if (busy) return; unlock(); b.textContent = "⏳ " + q; $("fStatus").textContent = S.working; ask(q, L.title, { scroll: true }); }; row.appendChild(b); });
     $("orTry").classList.toggle("hide", !row.children.length);
@@ -1093,34 +1161,49 @@ function pauseLabel(){ const b = $("pause"); if (!b) return; const L = (typeof t
 function unpause(){ if (typeof boardHeld !== "undefined") boardHeld = false; if (!paused) return; paused = false; try { if (ctx) ctx.resume(); } catch(e) {} elUnhold(); try { speechSynthesis.resume(); } catch(e) {} pauseLabel(); }
 /* ---------- three paths: I'm curious · Learn a skill · Help with my work ---------- */
 var curMode = "curious", curSubject = "", sessionLog = [];
-try { const m0 = localStorage.getItem("mpc_mode"); if (m0 === "skill" || m0 === "work") curMode = m0; } catch(e) {}
+try { const m0 = localStorage.getItem("mpc_mode"); if (["skill", "work", "why"].includes(m0)) curMode = m0; } catch(e) {}
+var drill = null, docFile = null, testsLog = [];
+function subjectsFor(L){ return L.subjects.concat(level === "teen" ? L.teenSubjects : []); }
 function pathText(){
   const L = t();
   $("pCur").textContent = L.pCur; $("pCurS").textContent = L.pCurS;
   $("pSkill").textContent = L.pSkill; $("pSkillS").textContent = L.pSkillS;
   $("pWork").textContent = L.pWork; $("pWorkS").textContent = L.pWorkS;
-  $("q").placeholder = curMode === "skill" ? L.phSkill : curMode === "work" ? L.phWork : L.placeholder;
+  $("pWhy").textContent = L.pWhy; $("pWhyS").textContent = L.pWhyS;
+  $("pathMsg").textContent = L.pathMsg[curMode];
+  $("q").placeholder = curMode === "skill" ? L.phSkill : curMode === "work" ? L.phWork : curMode === "why" ? L.phWhy : L.placeholder;
+  if (!lesson && !busy && !photo && !docFile) $("hint").textContent = curMode === "skill" ? L.hintSkill : curMode === "work" ? L.hintWork : curMode === "why" ? L.hintWhy : (SR ? L.hint : L.noMic);
   const sb = $("subjects"); sb.innerHTML = "";
   const lab = document.createElement("span"); lab.className = "sl"; lab.textContent = L.pickSubject; sb.appendChild(lab);
-  T.en.subjects.forEach((en, i) => {
-    const b = document.createElement("button"); b.className = "chip" + (curSubject === en ? " on" : ""); b.textContent = L.subjects[i];
-    b.onclick = () => { curSubject = curSubject === en ? "" : en; pathText(); };
+  const en = subjectsFor(T.en), shown = subjectsFor(L);
+  en.forEach((key, i) => {
+    const b = document.createElement("button"); b.className = "chip" + (curSubject === key ? " on" : ""); b.textContent = shown[i];
+    b.onclick = () => {
+      unlock(); curSubject = curSubject === key ? "" : key; pathText();
+      if (curMode === "skill") { if (curSubject) openDrill(); else closeDrill(); }
+    };
     sb.appendChild(b);
   });
-  sb.classList.toggle("hide", curMode === "curious");
-  ["viewsLabel","vIdea","vReal","vHome","helpsLabel","hAnother","hWalk","hHint","hPractice","hCheck","checkGo","hPrac","noteBtn"].forEach(id => { if ($(id)) $(id).textContent = L[id]; });
+  if (curSubject && !en.includes(curSubject)) curSubject = "";
+  sb.classList.toggle("hide", curMode === "curious" || curMode === "why");
+  ["viewsLabel","vIdea","vReal","vHome","helpsLabel","hAnother","hWalk","hHint","hPractice","hCheck","hTest","checkGo","hPrac","noteBtn","tTalk","tSnap","tUpload","hWhyPhotos"].forEach(id => { if ($(id)) $(id).textContent = L[id]; });
+  $("imgAnother").textContent = L.anotherPhoto; $("imgNote").textContent = L.accNote; $("wNote").textContent = L.accNote;
   $("checkText").placeholder = L.checkPh;
+  if (drill) renderDrill();
 }
-function setMode(m){
+function setMode(m, fromUser){
+  const changed = m !== curMode;
   curMode = m; try { localStorage.setItem("mpc_mode", m); } catch(e) {}
+  if (changed || m !== "skill") closeDrill();
   document.querySelectorAll("#paths button").forEach(b => b.classList.toggle("on", b.dataset.mode === m));
   $("cam").classList.toggle("pulse", m === "work");
   pathText();
   if (typeof renderStarters === "function" && m === "curious") renderStarters();
   $("starters").classList.toggle("hide", m !== "curious");
-  try { $("q").focus({ preventScroll: true }); } catch(e) {}
+  if (m === "skill" && curSubject && !drill) openDrill();
+  if (!lesson && !busy && fromUser) { welcome(); if (voicePref !== "mute" && !speaking) sayShort(t().pathMsg[m].replace(/^\W+\s*/, "")); }
 }
-document.querySelectorAll("#paths button").forEach(b => b.onclick = () => { unlock(); setMode(b.dataset.mode); });
+document.querySelectorAll("#paths button").forEach(b => b.onclick = () => { unlock(); setMode(b.dataset.mode, true); });
 
 /* ---------- buttons under each answer: see it another way, more help ---------- */
 document.querySelectorAll("#views button, #helps button").forEach(b => b.onclick = () => {
@@ -1128,6 +1211,7 @@ document.querySelectorAll("#views button, #helps button").forEach(b => b.onclick
   unlock();
   const a = b.dataset.a;
   if (a === "check") { $("checkBox").classList.toggle("hide"); if (!$("checkBox").classList.contains("hide")) $("checkText").focus(); return; }
+  if (a === "test") { startTest(lesson.title || "", 1); return; }
   if (a === "hint") logStat("hints");
   const label = b.textContent.replace(/^\W+\s*/, "");
   ask(label + ": " + (lesson.title || ""), lesson.title, { action: a, prev: speech, scroll: true });
@@ -1201,10 +1285,201 @@ function renderPractice(list){
   $("practiceCard").classList.remove("hide");
 }
 
+
+/* ---------- Learn a skill: subject → 10 topics → 10 subtopics (pick one, type your own, or 10 more) ---------- */
+function closeDrill(){ drill = null; const d = $("drill"); if (d) { d.classList.add("hide"); d.innerHTML = ""; } }
+function openDrill(){ drill = { subject: curSubject, path: [], shown: [], items: [], loading: false, failed: false }; loadDrill(false); }
+async function loadDrill(more){
+  if (!drill) return;
+  const my = drill; my.loading = true; my.failed = false; if (!more) my.shown = [];
+  renderDrill();
+  const url = `/api/ask?part=topics&v=1&level=${level}&lang=${lang}&subject=${encodeURIComponent(my.subject)}&path=${encodeURIComponent(my.path.join(" > "))}${more ? `&x=${encodeURIComponent(my.shown.join("; ").slice(0, 800))}` : ""}`;
+  let items = [];
+  try { const r = await fetch(url); if (r.ok) items = ((await r.json()).items || []).slice(0, 10); } catch(e) {}
+  if (drill !== my) return;
+  my.loading = false; my.failed = !items.length; my.items = items; my.shown = my.shown.concat(items);
+  renderDrill();
+}
+function subjectLabel(key){ const i = subjectsFor(T.en).indexOf(key); return i >= 0 ? subjectsFor(t())[i] : key; }
+function renderDrill(){
+  const d = $("drill"), L = t(); if (!drill) { d.classList.add("hide"); return; }
+  d.innerHTML = ""; d.classList.remove("hide");
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  const trail = el("div", "trail");
+  [subjectLabel(drill.subject)].concat(drill.path).forEach((x, i) => { if (i) trail.appendChild(el("span", "sep", "›")); trail.appendChild(el("span", "", x)); });
+  d.appendChild(trail);
+  d.appendChild(el("div", "dl", drill.loading ? L.drillLoading : drill.failed ? L.drillFail : drill.path.length ? L.drillSub : L.drillTopics));
+  const grid = el("div", "dgrid");
+  if (!drill.loading) drill.items.forEach(x => {
+    const b = el("button", "", x);
+    b.onclick = () => {
+      unlock();
+      if (!drill.path.length) { drill.path.push(x); loadDrill(false); }
+      else { const topic = drill.path[0]; ask(`${x} (${topic})`, "", { scroll: true }); }
+    };
+    grid.appendChild(b);
+  });
+  d.appendChild(grid);
+  const row = el("div", "drow");
+  if (drill.path.length) { const bk = el("button", "btn", L.drillBack); bk.onclick = () => { drill.path.pop(); loadDrill(false); }; row.appendChild(bk); }
+  const own = el("button", "btn", L.drillOwn); own.onclick = () => { $("q").placeholder = L.drillOwnPh; $("q").value = ""; $("q").focus(); }; row.appendChild(own);
+  const mo = el("button", "btn", L.drillMore); mo.disabled = drill.loading; mo.onclick = () => loadDrill(true); row.appendChild(mo);
+  const cur = drill.path.length ? drill.path[drill.path.length - 1] : subjectLabel(drill.subject);
+  const te = el("button", "btn", L.drillTest(cur)); te.onclick = () => { unlock(); startTest(drill.path.length ? `${cur} (${subjectLabel(drill.subject)})` : cur, 1); }; row.appendChild(te);
+  d.appendChild(row);
+}
+
+/* ---------- 📎 upload a file: photo, PDF, Word or text (read, explained, never saved) ---------- */
+$("upl").onclick = () => { unlock(); $("uplFile").click(); };
+function toBase64(f){ return new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1] || ""); r.onerror = no; r.readAsDataURL(f); }); }
+function loadMammoth(){
+  if (window.mammoth) return Promise.resolve();
+  return new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js"; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
+}
+function showFile(name){
+  const L = t();
+  $("photoImg").classList.add("hide"); $("fileName").textContent = "📄 " + name; $("fileName").classList.remove("hide");
+  $("photoX").textContent = L.fileRemove; $("photoBox").classList.remove("hide");
+  if (!$("q").value.trim()) $("q").value = L.explainFile;
+  $("hint").textContent = L.fileReady; $("go").classList.add("ready");
+}
+$("uplFile").onchange = async () => {
+  const f = $("uplFile").files && $("uplFile").files[0]; if (!f) return;
+  const L = t(), name = f.name || "file", ext = name.split(".").pop().toLowerCase();
+  if (/^image\//.test(f.type)) { handleImage(f); return; }
+  if (f.size > 3 * 1024 * 1024) { $("hint").textContent = L.fileTooBig; $("uplFile").value = ""; return; }
+  $("hint").textContent = L.fileReading;
+  try {
+    if (ext === "pdf" || f.type === "application/pdf") docFile = { kind: "pdf", data: await toBase64(f), name };
+    else if (ext === "docx") { await loadMammoth(); const r = await window.mammoth.extractRawText({ arrayBuffer: await f.arrayBuffer() }); docFile = { kind: "text", text: String(r.value || "").slice(0, 12000), name }; }
+    else if (ext === "txt" || /^text\//.test(f.type)) docFile = { kind: "text", text: (await f.text()).slice(0, 12000), name };
+    else { $("hint").textContent = L.fileBad; $("uplFile").value = ""; return; }
+  } catch(e) { $("hint").textContent = L.fileBad; $("uplFile").value = ""; return; }
+  if (docFile.kind === "text" && !docFile.text.trim()) { docFile = null; $("hint").textContent = L.fileBad; return; }
+  photo = null; showFile(name);
+};
+
+/* ---------- photos: accuracy note, "Show another photo", and the real-life gallery ---------- */
+function photoNot(list){ return list.map(x => String(x).slice(-80)).join("||"); }
+async function fetchPhoto(q, seen){
+  try { const r = await fetch("/api/images?q=" + encodeURIComponent(q) + (seen.length ? "&not=" + encodeURIComponent(photoNot(seen)) : "")); const d = await r.json(); return d.image || null; } catch(e) { return null; }
+}
+function creditLine(im){ return `${im.title ? im.title + " · " : ""}Credit: ${im.credit || im.source || ""}${im.license ? " · " + im.license : ""}`; }
+var mainSeen = [], mainQ = "";
+$("imgAnother").onclick = async () => {
+  if (!mainQ) return; const b = $("imgAnother"); b.disabled = true;
+  const im = await fetchPhoto(mainQ, mainSeen); b.disabled = false;
+  if (!im) { b.classList.add("hide"); return; }
+  mainSeen.push(im.src); $("img").src = im.src; $("img").alt = im.title || mainQ; $("credit").textContent = creditLine(im);
+};
+function renderWhyPhotos(list){
+  const card = $("whyCard"), grid = $("wGrid"); grid.innerHTML = "";
+  if (!list || !list.length) { card.classList.add("hide"); return; }
+  list.forEach(p => {
+    const fig = document.createElement("figure"); fig.className = "hide";
+    const img = document.createElement("img"); img.referrerPolicy = "no-referrer";
+    const cap = document.createElement("figcaption"); cap.textContent = p.caption || "";
+    const cr = document.createElement("p"); cr.className = "credit";
+    const an = document.createElement("button"); an.className = "another"; an.textContent = t().anotherPhoto;
+    const seen = [];
+    const show = im => { seen.push(im.src); img.src = im.src; img.alt = im.title || p.caption || p.query; cr.textContent = creditLine(im); };
+    img.onload = () => { fig.classList.remove("hide"); card.classList.remove("hide"); $("extras").classList.remove("hide"); };
+    img.onerror = () => fig.classList.add("hide");
+    an.onclick = async () => { an.disabled = true; const im = await fetchPhoto(p.query, seen); an.disabled = false; if (im) show(im); else an.classList.add("hide"); };
+    fig.append(img, cap, cr, an); grid.appendChild(fig);
+    fetchPhoto(p.query, seen).then(im => { if (im) show(im); });
+  });
+}
+
+/* ---------- 📝 Test me: 5 key questions, one at a time ---------- */
+var testState = null;
+async function startTest(topic, n){
+  const card = $("testCard"), L = t();
+  testState = { topic, n: n || 1, qs: [], i: 0, right: 0, missed: [] };
+  const my = testState;
+  card.innerHTML = ""; card.classList.remove("hide");
+  const h = document.createElement("h3"); h.textContent = L.testTitle(topic); card.appendChild(h);
+  const w = document.createElement("div"); w.className = "tfb"; w.textContent = L.testLoading; card.appendChild(w);
+  card.scrollIntoView({ behavior: "smooth", block: "start" });
+  let qs = [];
+  try { const r = await fetch(`/api/ask?part=test&v=1&level=${level}&lang=${lang}&topic=${encodeURIComponent(topic)}&n=${my.n}`); if (r.ok) qs = (await r.json()).questions || []; } catch(e) {}
+  if (testState !== my) return;
+  if (!qs.length) { w.textContent = L.testFail; return; }
+  my.qs = qs; showTestQ();
+}
+function showTestQ(){
+  const st = testState, card = $("testCard"), L = t(), q = st.qs[st.i];
+  card.innerHTML = "";
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  card.appendChild(el("h3", "", L.testTitle(st.topic)));
+  card.appendChild(el("div", "tq", L.testQ(st.i + 1, st.qs.length)));
+  card.appendChild(el("div", "tt", q.q));
+  const fb = el("div", "tfb"), row = el("div", "trow");
+  let answered = false;
+  const finish = ok => {
+    answered = true;
+    if (ok) st.right++; else st.missed.push(q);
+    fb.textContent = (ok ? L.testRight : L.testWrong + L.testAns + q.answer + ". ") + (q.why || "");
+    const nx = el("button", "btn", st.i + 1 < st.qs.length ? L.testNext : L.testFinish);
+    nx.onclick = () => { st.i++; if (st.i < st.qs.length) showTestQ(); else showTestEnd(); };
+    row.appendChild(nx);
+    if (!speaking) sayShort((ok ? L.testRight : L.testWrong).replace(/^\W+\s*/, "") + (q.why || ""));
+  };
+  if (q.type === "choice" && q.options.length) {
+    const box = el("div", "topts");
+    q.options.forEach(o => {
+      const b = el("button", "", o);
+      b.onclick = () => {
+        if (answered) return;
+        const ok = pNorm(o) === pNorm(q.answer) || pSame(o, q.answer);
+        b.classList.add(ok ? "right" : "wrong");
+        if (!ok) box.querySelectorAll("button").forEach(x => { if (pNorm(x.textContent) === pNorm(q.answer)) x.classList.add("right"); });
+        finish(ok);
+      };
+      box.appendChild(b);
+    });
+    card.appendChild(box);
+  } else {
+    const pr = el("div", "pq"); const r2 = el("div", "pr");
+    const inp = el("input"); inp.placeholder = L.pPh; inp.autocomplete = "off";
+    const ck = el("button", "btn", L.testCheck);
+    const go = () => { if (answered || !inp.value.trim()) return; inp.disabled = true; ck.disabled = true; finish(pSame(inp.value, q.answer)); };
+    ck.onclick = go; inp.onkeydown = e => { if (e.key === "Enter") go(); };
+    r2.append(inp, ck); pr.appendChild(r2); card.appendChild(pr);
+    setTimeout(() => { try { inp.focus({ preventScroll: true }); } catch(e) {} }, 50);
+  }
+  card.append(fb, row);
+}
+function showTestEnd(){
+  const st = testState, card = $("testCard"), L = t(), n = st.qs.length;
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  card.innerHTML = "";
+  card.appendChild(el("h3", "", L.testTitle(st.topic)));
+  card.appendChild(el("div", "tbig", L.testScore(st.right, n)));
+  const msg = st.right === n ? L.testGreat : st.right >= n - 2 ? L.testGood : L.testKeep;
+  card.appendChild(el("div", "tfb", msg));
+  testsLog.push({ topic: st.topic, right: st.right, n }); $("noteBtn").classList.remove("hide");
+  if (st.missed.length) {
+    card.appendChild(el("div", "tfb", L.testMissed));
+    const ul = el("ul");
+    st.missed.forEach(q => ul.appendChild(el("li", "", `${q.q} — ${L.testAns}${q.answer}${q.why ? ". " + q.why : ""}`)));
+    card.appendChild(ul);
+  }
+  const row = el("div", "trow");
+  if (st.missed.length) {
+    const rv = el("button", "btn", L.testReview);
+    rv.onclick = () => { unlock(); const prev = st.missed.map(q => `Question: ${q.q} Right answer: ${q.answer}. ${q.why || ""}`).join("\n"); ask(L.testReview.replace(/^\W+\s*/, "") + ": " + st.topic, st.topic, { action: "review", prev, scroll: true }); };
+    row.appendChild(rv);
+  }
+  const nw = el("button", "btn", L.testNew); nw.onclick = () => startTest(st.topic, st.n + 1); row.appendChild(nw);
+  card.appendChild(row);
+  if (!speaking) sayShort(L.testScore(st.right, n) + " " + msg);
+}
+
 /* ---------- note for the grown-up ---------- */
 function logLesson(L, opts){
   if (!L || L.type !== "lesson") return;
-  sessionLog.push({ title: L.title || "", mode: curMode, subject: curSubject, action: (opts && opts.action) || "", tried: 0, right: 0, hints: 0, checks: 0, next: (L.deeper || [])[0] || "" });
+  sessionLog.push({ title: L.title || "", mode: curMode, subject: (curMode === "skill" || curMode === "work") ? curSubject : "", action: (opts && opts.action) || "", tried: 0, right: 0, hints: 0, checks: 0, next: (L.deeper || [])[0] || "" });
   $("noteBtn").classList.remove("hide");
 }
 function curEntry(){ return sessionLog[sessionLog.length - 1]; }
@@ -1217,6 +1492,7 @@ function noteText(){
     tried += e.tried; right += e.right; hints += e.hints; checks += e.checks;
   });
   lines.push("", L.notePrac + ": " + (tried ? L.pScore(right, tried) : L.noteNone), L.noteHints + ": " + hints, L.noteChecks + ": " + checks);
+  if (testsLog.length) { lines.push("", L.noteTests + ":"); testsLog.forEach(x => lines.push("• " + x.topic + ": " + L.testScore(x.right, x.n))); }
   const nx = (sessionLog.slice().reverse().find(e => e.next) || {}).next;
   if (nx) lines.push("", L.noteNext + ": " + nx);
   return lines.join("\n");
@@ -1251,6 +1527,7 @@ $("pause").onclick = () => { if (!speaking) return; if (paused) unpause(); else 
 var boardHeld = false;
 function studyUI(){
   const bp = $("bPause"), bc = $("bCont"), be = $("bExplain"); if (!bp) return;
+  $("studybar").classList.toggle("hide", !lesson);
   const L = t();
   const moving = !speaking && groups.length > 0 && shown < groups.length && !manual;
   bp.textContent = L.pause; bc.textContent = L.resume;
@@ -1552,7 +1829,7 @@ async function loadImage(q){
     img.onload = () => { $("imgCard").classList.remove("hide"); $("extras").classList.remove("hide"); };
     img.onerror = () => $("imgCard").classList.add("hide");
     img.alt = d.image.title || q;
-    img.src = d.image.src;
+    img.src = d.image.src; mainQ = q; mainSeen = [d.image.src];
     $("credit").textContent = `${d.image.title ? d.image.title + " · " : ""}Credit: ${d.image.credit} · ${d.image.license} · ${d.image.source}`;
   } catch(e) {}
 }
@@ -1576,12 +1853,19 @@ function buildQuiz(q){
 }
 
 /* ---------- welcome board ---------- */
+// the welcome board matches the path the visitor picked (curious, learn a skill, help with my work, why learn this)
+const WELCOME_ICONS = {
+  curious: "<circle cx='400' cy='275' r='65' fill='#fff7d6' stroke='#f0a020' stroke-width='6'/><rect x='372' y='345' width='56' height='36' rx='8' fill='#79c0ff' stroke='#1f6feb' stroke-width='5'/><line x1='305' y1='220' x2='282' y2='202' stroke='#f0a020' stroke-width='6' stroke-linecap='round'/><line x1='495' y1='220' x2='518' y2='202' stroke='#f0a020' stroke-width='6' stroke-linecap='round'/><line x1='400' y1='192' x2='400' y2='170' stroke='#f0a020' stroke-width='6' stroke-linecap='round'/><circle cx='380' cy='265' r='6' fill='#24292f'/><circle cx='420' cy='265' r='6' fill='#24292f'/><path d='M378 288 Q 400 315 422 288' fill='none' stroke='#f0a020' stroke-width='5' stroke-linecap='round'/>",
+  skill: "<path d='M260 210 Q330 185 400 215 L400 380 Q330 350 260 375 Z' fill='#79c0ff' fill-opacity='0.5' stroke='#1f6feb' stroke-width='6' stroke-linejoin='round'/><path d='M540 210 Q470 185 400 215 L400 380 Q470 350 540 375 Z' fill='#a5d6a7' fill-opacity='0.6' stroke='#2da44e' stroke-width='6' stroke-linejoin='round'/><line x1='290' y1='240' x2='370' y2='232' stroke='#1f6feb' stroke-width='4' stroke-linecap='round'/><line x1='290' y1='270' x2='370' y2='262' stroke='#1f6feb' stroke-width='4' stroke-linecap='round'/><line x1='430' y1='232' x2='510' y2='240' stroke='#2da44e' stroke-width='4' stroke-linecap='round'/><line x1='430' y1='262' x2='510' y2='270' stroke='#2da44e' stroke-width='4' stroke-linecap='round'/><polygon points='400,160 410,182 434,184 416,199 422,222 400,210 378,222 384,199 366,184 390,182' fill='#ffd33d' stroke='#f0a020' stroke-width='3'/>",
+  work: "<rect x='290' y='215' width='220' height='150' rx='22' fill='#79c0ff' fill-opacity='0.5' stroke='#1f6feb' stroke-width='6'/><rect x='340' y='190' width='70' height='32' rx='8' fill='#79c0ff' stroke='#1f6feb' stroke-width='5'/><circle cx='400' cy='290' r='48' fill='#ffffff' stroke='#1f6feb' stroke-width='6'/><circle cx='400' cy='290' r='24' fill='#8250df' fill-opacity='0.6' stroke='#8250df' stroke-width='4'/><circle cx='478' cy='240' r='8' fill='#ffd33d'/><path d='M540 205 l14 -14 M548 230 l20 0 M540 255 l14 14' stroke='#f0a020' stroke-width='5' stroke-linecap='round'/>",
+  why: "<circle cx='400' cy='285' r='95' fill='#79c0ff' fill-opacity='0.55' stroke='#1f6feb' stroke-width='6'/><path d='M345 230 Q370 215 390 235 Q395 260 370 270 Q350 285 340 265 Z' fill='#a5d6a7' stroke='#2da44e' stroke-width='4'/><path d='M420 300 Q450 285 470 305 Q465 340 440 350 Q415 340 420 300 Z' fill='#a5d6a7' stroke='#2da44e' stroke-width='4'/><path d='M415 215 Q440 205 455 225 Q440 240 420 232 Z' fill='#a5d6a7' stroke='#2da44e' stroke-width='4'/><ellipse cx='400' cy='285' rx='95' ry='32' fill='none' stroke='#1f6feb' stroke-width='3' stroke-dasharray='8 8'/>"
+};
 function welcome(){
-  const S = t();
+  const S = t(), W = S.wm[curMode] || S.wm.curious;
   buildBoard([
-    { caption: S.wbc1, svg: "<text x='400' y='78' text-anchor='middle' font-family='Patrick Hand' font-size='42' fill='#24292f'>" + esc(S.wb1) + "</text><text x='400' y='142' text-anchor='middle' font-family='Patrick Hand' font-size='60' fill='#1f6feb'>" + esc(S.wb2) + "</text>" },
-    { caption: S.wbc2, svg: "<circle cx='400' cy='275' r='65' fill='#fff7d6' stroke='#f0a020' stroke-width='6'/><rect x='372' y='345' width='56' height='36' rx='8' fill='#79c0ff' stroke='#1f6feb' stroke-width='5'/><line x1='305' y1='220' x2='282' y2='202' stroke='#f0a020' stroke-width='6' stroke-linecap='round'/><line x1='495' y1='220' x2='518' y2='202' stroke='#f0a020' stroke-width='6' stroke-linecap='round'/><line x1='400' y1='192' x2='400' y2='170' stroke='#f0a020' stroke-width='6' stroke-linecap='round'/><circle cx='380' cy='265' r='6' fill='#24292f'/><circle cx='420' cy='265' r='6' fill='#24292f'/><path d='M378 288 Q 400 315 422 288' fill='none' stroke='#f0a020' stroke-width='5' stroke-linecap='round'/>" },
-    { caption: S.wbc3, svg: "<text x='400' y='450' text-anchor='middle' font-family='Patrick Hand' font-size='50' fill='#2da44e'>" + esc(S.wb3) + "</text>" }
+    { caption: W.c[0], svg: "<text x='400' y='78' text-anchor='middle' font-family='Patrick Hand' font-size='42' fill='#24292f'>" + esc(S.wb1) + "</text><text x='400' y='142' text-anchor='middle' font-family='Patrick Hand' font-size='60' fill='#1f6feb'>" + esc(S.wb2) + "</text>" },
+    { caption: W.c[1], svg: WELCOME_ICONS[curMode] || WELCOME_ICONS.curious },
+    { caption: W.c[2], svg: "<text x='400' y='450' text-anchor='middle' font-family='Patrick Hand' font-size='50' fill='#2da44e'>" + esc(W.b3) + "</text>" }
   ]);
   (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => { if (liveBoard || lesson || busy) return; manual = true; playSteps(); });
 }
@@ -1593,7 +1877,8 @@ applyText();
 $("title").textContent = t().welcomeTitle;
 $("read").innerHTML = "<p></p>"; $("read").firstChild.textContent = t().welcomeText;
 $("caption").textContent = t().start;
-setLevel("little");
+let lv0 = "little"; try { const v = localStorage.getItem("mpc_level"); if (v === "big" || v === "teen") lv0 = v; } catch(e) {}
+setLevel(lv0);
 welcome();
 
 /* ---------- auto-size: tell the host page how tall this tool is ---------- */
