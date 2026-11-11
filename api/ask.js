@@ -105,6 +105,9 @@ MAKE IT COMPELLING (this matters most). Each step should look like the best pict
 - MATH: write numbers big and step by step, and draw real objects to count (apples, blocks, pizza slices), not just digits.
 - TEXT SIZE MATH: in Patrick Hand each character is about 0.5 x font-size wide. A box holding text must be at least (characters x 0.5 x font-size) + 30px wide. Never let text run past a box edge or past x 20 or x 780.
 - LAYOUT: plan positions first. Objects do not overlap unless one is truly inside the other. Put every label BELOW or BESIDE its shape (or in a neat column on the right with a leader line from a small dot on the part), never across a shape's outline. Lines never cross text. Keep everything inside x 20-780, y 20-480.
+- TEXT IN A BOX OR PILL: center it. For a box at y=Y with height H, put the text at y = Y + H/2 + 0.35 x font-size with text-anchor='middle' at the box's center x, and make the box at least font-size + 24 tall.
+- ROWS: anything stacked vertically (a label, then a row of pills, then a takeaway box) keeps at least 20px of empty space between rows. Never put a pill or box on top of other words. Do not crowd the bottom: at most one row of pills plus one takeaway box below the main drawing.
+- LABELS NEVER SIT ON A LINE: put words above or below ground lines and box borders with at least 12px of space, never on them.
 - EACH STEP STANDS ALONE: the board is wiped clean before every step, so draw the whole picture for that step using the full board. Never rely on shapes from earlier steps.
 - Before finishing each step, check: does it fill the board, is the main thing big and recognizable, can every label be read, does any text run off the board or cross a line? Fix it first.
 
