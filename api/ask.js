@@ -5,8 +5,9 @@
 
 const MODEL = process.env.CLAUDE_MODEL || "claude-sonnet-5-5";
 const CHECK_MODEL = process.env.CLAUDE_CHECK_MODEL || "claude-haiku-5-5";
-// The drawing step uses the faster model. To switch back, add BOARD_MODEL = claude-sonnet-5-5 in Vercel settings.
-const BOARD_MODEL = process.env.BOARD_MODEL || "claude-haiku-5-5";
+// The smart-board pictures use the stronger model, so they look richer and more accurate.
+// To go back to the faster model, add BOARD_MODEL = claude-haiku-5-5 in Vercel settings.
+const BOARD_MODEL = process.env.BOARD_MODEL || "claude-sonnet-5-5";
 const HOURLY_LIMIT = 20;
 const hits = new Map();
 
@@ -41,7 +42,13 @@ const LEVELS = {
 - "answer": 3 short paragraphs, 110-150 words total.
 - "vocab": 1-2 items.
 - Quiz: needs a little thinking.
-- Board: 3-4 steps. Can include simple formulas written out step by step (e.g., "Area = length × width" then "5 × 3 = 15").`
+- Board: 3-4 steps. Can include simple formulas written out step by step (e.g., "Area = length × width" then "5 × 3 = 15").`,
+  teen: `GRADES 7-12 ("Teens", ages 12-18). Talk to them like a smart, respected student, never babyish:
+- Clear, natural sentences. Use the real subject vocabulary and define it. Show the reasoning, formulas and steps.
+- "answer": 3-4 paragraphs, 150-230 words total.
+- "vocab": 2-3 items.
+- Quiz and practice: middle or high school level (pre-algebra to algebra, geometry, biology, chemistry, physics, history, essay writing), real thinking required.
+- Board: 3-4 steps, clean and precise, like a great high school teacher's board: labeled diagrams, graphs, equations solved line by line.`
 };
 
 const SPANISH = `IMPORTANT: Write EVERYTHING the child will see or hear (title, answer, vocab, quiz, wow, try_it, deeper, captions, board labels) in simple, friendly Latin American Spanish. Keep image_query in ENGLISH.`;
@@ -87,10 +94,19 @@ THE SMART BOARD: an 800 wide x 500 tall whiteboard. Each step is its own complet
 - Lines/outlines: stroke-width 4 to 6, stroke-linecap='round'.
 - Colors only: #1f6feb, #e5534b, #2da44e, #f0a020, #8250df, #24292f, #ffd33d, #79c0ff, #a5d6a7, #ffb3a7.
 - Text: font-family='Patrick Hand' font-size 24 to 40. Short labels. Arrows drawn with lines/paths.
-- LAYOUT: Before drawing, plan where every object goes. Give each object its own space. Objects must NOT overlap each other, and text must never sit on top of a shape. Leave at least 20px between things. Keep everything inside x 20-780, y 20-480.
-- Max 12 elements per step. EACH STEP STANDS ALONE: the board is wiped clean before every step, so draw the whole picture for that step using the full board. Never rely on shapes from earlier steps.
-- Put every label BELOW or BESIDE its shape, never inside it or across it. Each label needs its own empty space, at least 30px from other words.
-- Simple, clear, kid-friendly: shapes, arrows, labels, step-by-step math.
+MAKE IT COMPELLING (this matters most). Each step should look like the best picture a gifted, fun teacher ever drew: big, bold, colorful and clear from across the room.
+- FILL THE BOARD. The drawing and its labels use most of the 800 x 500 board (roughly x 30-770, y 30-470). Never a small drawing in a corner or lots of empty board. The main object is LARGE: at least 360px wide or 280px tall.
+- DRAW THE REAL THING, not boxes with words: a heart looks like a heart, a volcano like a volcano, a plant with roots, stem and leaves, a sun with rays, a rocket, an animal, a pizza cut into slices for fractions. Use paths and curves for natural shapes. Boxes only for simple charts.
+- SOLID, CHEERFUL COLORS. Give main shapes a colored fill (use fill-opacity='0.35' for the light colors or the real color for small parts) with a bold outline. Use 3-5 colors, each with a job, and keep their meaning.
+- FRIENDLY DETAILS: a ground line, a few small details that make it real (leaf veins, windows, water drops, motion lines). 15-35 elements per step.
+- MOVEMENT AND CAUSE: bold arrows (stroke-width 5) ending in solid triangle arrowheads (a small polygon). Curved arrows for cycles.
+- BIG, READABLE LABELS: 1-3 words each, font-size 28-40. Nothing smaller than 24.
+- ONE TAKEAWAY: when there is room, end the step with a short takeaway line (under 30 characters) near the bottom, inside a rounded rectangle with a #ffd33d outline (for example "Plants eat sunlight!").
+- MATH: write numbers big and step by step, and draw real objects to count (apples, blocks, pizza slices), not just digits.
+- TEXT SIZE MATH: in Patrick Hand each character is about 0.5 x font-size wide. A box holding text must be at least (characters x 0.5 x font-size) + 30px wide. Never let text run past a box edge or past x 20 or x 780.
+- LAYOUT: plan positions first. Objects do not overlap unless one is truly inside the other. Put every label BELOW or BESIDE its shape (or in a neat column on the right with a leader line from a small dot on the part), never across a shape's outline. Lines never cross text. Keep everything inside x 20-780, y 20-480.
+- EACH STEP STANDS ALONE: the board is wiped clean before every step, so draw the whole picture for that step using the full board. Never rely on shapes from earlier steps.
+- Before finishing each step, check: does it fill the board, is the main thing big and recognizable, can every label be read, does any text run off the board or cross a line? Fix it first.
 
 LEGEND: for each step, list every math sign, symbol, or unit abbreviation that appears in that step's svg (for example ×, ÷, =, +, °F, °C, cm, kg, %), each with a very short kid-friendly meaning (for example "× means times", "cm means centimeters"). Write meanings in the same language as the lesson. Use [] when a step has no symbols, which is most of the time for pictures.
 FORMULAS: for every math sentence or formula written in a step (for example "5 × 3 = 15" or "Area = length × width"), give the "formula" exactly as written and an "explanation": one short, friendly sentence a kid can understand, ideally with a picture in words (for example "5 groups of 3 apples make 15 apples"). Same language as the lesson. Use [] if the step has none.
@@ -113,6 +129,7 @@ const SYSTEM_BOARD_STREAM = SYSTEM_BOARD.replace("Always respond by calling the 
 const PRACTICE_RULES = `PRACTICE: give "practice" problems at the child's grade. Each has "q" (the problem, short and clear), "answer" (the short exact answer only: digits for numbers like 12 or 3.5, fractions like 3/4, or one or two words), and "hint" (one helpful nudge that does NOT give the answer).`;
 const MODES = {
   skill: s => `THE CHILD CHOSE "LEARN A SKILL"${s ? ` in ${s}` : ""}. Teach the skill they named like a short, friendly lesson: paragraph 1 says what it is and why it matters, paragraph 2 works one example step by step, paragraph 3 gives a tip or a common mistake to avoid (keep it to 3-4 paragraphs). ${PRACTICE_RULES} Give exactly 3 practice problems, easiest first.`,
+  why: s => `THE CHILD CHOSE "WHY LEARN THIS?"${s ? ` (${s})` : ""}: they want to know why this topic matters in the real world and for their future. Write 4-5 paragraphs: (1) what it is in one or two simple sentences, (2) where people use it in everyday life, with 2-3 concrete examples from a kid's world, (3) real jobs that use it and how (2-3 jobs), (4) why it matters for the future (new technology, inventions, careers), (5) one real-life example worked through step by step with numbers when it fits (for example carpet for a 12 by 10 foot room at $3 a square foot). "photos": 3-4 real photos that show it being used in real life or on the job, each with "query" (2-5 plain, safe English search words for a real photo, like "carpenter measuring floor") and "caption" (a short line in the lesson's language). ${PRACTICE_RULES} Give 2 real-life practice problems.`,
   work: s => `THE CHILD CHOSE "HELP WITH MY WORK"${s ? ` (${s})` : ""}: this is their own school or homeschool work, maybe in a photo. NEVER give the final answer to their actual problem, and never write their writing for them. Instead: paragraph 1 says what the problem is asking and the idea it uses, paragraphs 2-3 walk through the first steps with hints and questions, and the last paragraph encourages them to finish it themselves. ${PRACTICE_RULES} Give 2 practice problems LIKE theirs (not their exact problem).`
 };
 const ACTIONS = {
@@ -122,6 +139,7 @@ const ACTIONS = {
   another: `Explain this SAME topic in a completely DIFFERENT way: a new comparison, a new example, a new picture in the mind. Do not repeat the earlier explanation. Title it like "Another Way to See It: ...".`,
   walk: `WALK THE CHILD THROUGH this same topic one tiny step at a time: each paragraph is one numbered step ("Step 1: ..."), 3-4 steps, short and clear. Title it like "Step by Step: ...".`,
   hint: `Give ONE helpful HINT toward what the child is working on, not the answer: 1-2 short paragraphs that point them in the right direction and ask a guiding question. Title it like "Here's a Hint".`,
+  review: `The child just took a short test. What Mr. Paul already taught (above) lists the questions they MISSED with the right answers. Re-teach ONLY those ideas, one short paragraph each, simply and kindly, with a new example for each. Title it like "Let's Review: ...".`,
   practice: `Give PRACTICE on this same topic. "answer" is 1 short paragraph of encouragement saying what they will practice. ${PRACTICE_RULES} Give exactly 4 new practice problems, easiest first. Title it like "Practice Time: ...".`
 };
 const CHECK_TOOL = {
@@ -132,6 +150,36 @@ const SYSTEM_CHECK = `You are Mr. Paul, a warm, patient grade-school teacher che
 - verdict: "right" if correct, "partly" if on the right track with a mistake, "not_yet" if wrong.
 - feedback: 2-3 short, kind sentences for the child, read aloud. Praise what is right first. If there is a mistake, point to WHERE it is and give a hint to fix it. Never just give the correct final answer. No emojis, no markdown.
 If the child's text is not about schoolwork or is inappropriate, verdict "not_yet" and gently ask them to share their work on the lesson.`;
+// "Learn a skill" topic lists: 10 at a time for a subject, then 10 subtopics for a topic. Saved on Vercel's network.
+const TOPICS_TOOL = { name: "give_topics", description: "Deliver the list.", input_schema: { type: "object", properties: { items: { type: "array", items: { type: "string" } } }, required: ["items"] } };
+async function topicList(src, send, level, lang) {
+  const clip = (v, n) => String(v || "").replace(/[<>{}"]/g, " ").replace(/\s+/g, " ").trim().slice(0, n);
+  const subject = clip(src.subject, 40), path = clip(src.path, 200), not = clip(src.x, 900);
+  if (!subject) return send(400, { error: "empty" });
+  const grade = level === "teen" ? "grades 7-12" : level === "big" ? "grades 3-6" : "grades K-2";
+  const user = `Subject: ${subject}\nStudent level: ${grade}\n${path ? `They already picked: ${path}\nList 10 subtopics inside "${path.split(" > ").pop()}" that a ${grade} student would learn.` : `List 10 main topics in ${subject} that a ${grade} student would learn.`}${not ? `\nDo NOT repeat any of these: ${not}` : ""}\n${lang === "es" ? "Write each item in simple Spanish." : ""}`;
+  try {
+    const j = await withRetry(() => callTool(`You plan lessons for a children's learning site. Return exactly 10 short, kid-friendly topic names (1-5 words each), matched to the grade level, in the order a teacher would teach them, all appropriate for school. No numbering, no emojis.`, TOPICS_TOOL, user, 600, x => Array.isArray(x.items), CHECK_MODEL), 15000);
+    const items = j.items.map(x => clip(x, 50)).filter(Boolean).slice(0, 10);
+    return send(200, { items }, items.length > 0);
+  } catch (e) { return send(500, { error: "oops", reason: errorCode(e) }); }
+}
+const TEST_TOOL = { name: "give_test", description: "Deliver the 5-question test.", input_schema: { type: "object", properties: { questions: { type: "array", items: { type: "object", properties: {
+  q: { type: "string" }, type: { type: "string", enum: ["choice", "short"] }, options: { type: "array", items: { type: "string" } }, answer: { type: "string" }, why: { type: "string" } } } } }, required: ["questions"] } };
+async function makeTest(src, send, level, lang) {
+  const clip = (v, n) => String(v || "").replace(/[<>{}]/g, " ").replace(/\s+/g, " ").trim().slice(0, n);
+  const topic = clip(src.topic, 160); if (!topic) return send(400, { error: "empty" });
+  const set = Math.max(1, Math.min(9, parseInt(src.n, 10) || 1));
+  const user = `${LEVELS[level]}${lang === "es" ? "\n\nWrite everything in simple, friendly Spanish." : ""}\n\nTopic: ${topic}\nThis is test number ${set} on it${set > 1 ? ", so use different questions from earlier tests" : ""}.`;
+  try {
+    const j = await withRetry(() => callTool(`You are Mr. Paul, a warm teacher writing a 5-question test on the KEY ideas of a topic (not trivia), matched to the student's grade. Mix about 3 "choice" questions (exactly 3 options; "answer" is the exact text of the right option) and 2 "short" questions ("answer" is the short exact answer: digits for numbers like 12 or 3.5, fractions like 3/4, or one or two words). "why" explains the right answer in one short, kind sentence. Be accurate. Only school-appropriate content.`, TEST_TOOL, user, 2500, x => Array.isArray(x.questions), MODEL), 20000);
+    const questions = j.questions.filter(x => x && x.q && x.answer).slice(0, 5).map(x => ({
+      q: clip(x.q, 300), type: x.type === "short" || !Array.isArray(x.options) || x.options.length < 2 ? "short" : "choice",
+      options: (Array.isArray(x.options) ? x.options : []).map(o => clip(o, 120)).slice(0, 4), answer: clip(x.answer, 120), why: clip(x.why, 300) }));
+    return send(200, { questions }, questions.length > 0);
+  } catch (e) { return send(500, { error: "oops", reason: errorCode(e) }); }
+}
+
 async function checkWork(src, send, level, lang) {
   const clip = (v, n) => String(v || "").replace(/[<>]/g, " ").replace(/\s+/g, " ").trim().slice(0, n);
   const work = clip(src.work, 800); if (!work) return send(400, { error: "empty" });
@@ -159,7 +207,8 @@ const LESSON_TOOL = {
       try_it: { type: "string" },
       quiz: { type: "object", properties: { question: { type: "string" }, options: { type: "array", items: { type: "string" } }, answer: { type: "integer" }, why: { type: "string" } } },
       deeper: { type: "array", items: { type: "string" } },
-      practice: { type: "array", items: { type: "object", properties: { q: { type: "string" }, answer: { type: "string" }, hint: { type: "string" } } } }
+      practice: { type: "array", items: { type: "object", properties: { q: { type: "string" }, answer: { type: "string" }, hint: { type: "string" } } } },
+      photos: { type: "array", items: { type: "object", properties: { query: { type: "string" }, caption: { type: "string" } } } }
     },
     required: ["type", "title", "answer"]
   }
@@ -205,7 +254,7 @@ async function streamClaude(system, user, maxTokens, model, onText) {
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "content-type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
-    body: JSON.stringify({ model, max_tokens: maxTokens, system, stream: true, thinking: { type: "disabled" }, messages: [{ role: "user", content: user }] })
+    body: JSON.stringify({ model, max_tokens: maxTokens, system, stream: true, ...(/haiku/i.test(model) ? { thinking: { type: "disabled" } } : {}), messages: [{ role: "user", content: user }] })
   });
   if (!r.ok) { const t = await r.text().catch(() => ""); throw new Error("api_" + r.status + " " + t.slice(0, 200)); }
   const reader = r.body.getReader(); const dec = new TextDecoder(); let buf = "";
@@ -262,12 +311,33 @@ async function streamBoard(res, isGet, user, maxSteps, kidsLimits) {
       start(); res.write(JSON.stringify(step) + "\n"); count++;
     }
   };
-  for (let attempt = 0; attempt < 2 && !wrote && !none; attempt++) {
-    text = "";
-    try { await streamClaude(SYSTEM_BOARD_STREAM, user, 8000, BOARD_MODEL, t => { text += t; flush(); }); flush(); lastErr = null; }
-    catch (e) { lastErr = e; console.error("drawing attempt", attempt + 1, "failed:", e.message); }
-    if (wrote || none) break;
-  }
+  // every picture is drawn at the same time (one call each) and sent in order as soon as it is ready;
+  // if the stronger model fails on one, the fast model tries once
+  const n = Math.min(maxSteps, 4);
+  const results = new Array(n).fill(undefined); let next = 0;
+  const emit = () => {
+    while (next < n && results[next] !== undefined) {
+      const step = results[next]; next++;
+      if (!step || !step.svg) continue;
+      if (kidsLimits) { step.legend = step.legend.slice(0, 8); step.formulas = step.formulas.slice(0, 3); delete step.title; }
+      start(); res.write(JSON.stringify(step) + "\n"); count++;
+    }
+  };
+  const drawOne = async k => {
+    const one = `${user}\n\nDraw ONLY step ${k + 1} of ${n}${n > 1 ? `, the picture for paragraph ${k + 1}` : ""}. Write exactly one === STEP block and nothing else.`;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const model = attempt === 0 ? BOARD_MODEL : "claude-haiku-5-5";
+      let t = "";
+      try {
+        await streamClaude(SYSTEM_BOARD_STREAM, one, /haiku/i.test(model) ? 7000 : 10000, model, x => { t += x; });
+        if (t.includes("=== NONE")) { none = true; return null; }
+        const a2 = t.indexOf("=== STEP"), b2 = t.indexOf("=== END", a2);
+        if (a2 >= 0) { const step = parseBlock(b2 > a2 ? t.slice(a2 + 8, b2) : t.slice(a2 + 8)); if (step.svg) return step; }
+      } catch (e) { lastErr = e; console.error("picture", k + 1, "attempt", attempt + 1, "failed:", e.message); }
+    }
+    return null;
+  };
+  await Promise.all(Array.from({ length: n }, (_, k) => drawOne(k).then(step => { results[k] = step; if (!none) emit(); })));
   if (wrote) { res.write(JSON.stringify({ done: true }) + "\n"); return res.end(); }
   if (none || !lastErr) {
     res.setHeader("Cache-Control", isGet && none ? "public, s-maxage=2592000" : "no-store");
@@ -340,7 +410,7 @@ async function explainFigure(src, send) {
   const words = clip(src.w, 900).split("|").map(x => x.trim()).filter(Boolean).slice(0, 24);
   const formulas = clip(src.f, 600).split("||").map(x => x.trim()).filter(Boolean).slice(0, 4);
   if (!words.length && !formulas.length && !title) return send(400, { error: "empty" });
-  const kid = src.level === "big" ? "The child is in grades 3 to 6." : "The child is in grades K to 2: use very short sentences and the simplest words.";
+  const kid = src.level === "teen" ? "The student is a teen in grades 7 to 12: talk to them like a smart student, use real vocabulary, never babyish." : src.level === "big" ? "The child is in grades 3 to 6." : "The child is in grades K to 2: use very short sentences and the simplest words.";
   const lang = src.lang === "es" ? " Write everything in simple, friendly Spanish (keep each \"word\" exactly as written on the picture)." : "";
   const user = `${kid}${lang}\nLesson question: ${question}\nFigure title: ${title}\nCaption: ${caption}\nWords and symbols on the figure: ${words.join(" | ") || "(none)"}\nFormulas on the figure: ${formulas.join(" || ") || "(none)"}`;
   try {
@@ -369,19 +439,24 @@ module.exports = async (req, res) => {
   if (src.part === "explain") return explainFigure(src, send);
   const part = src.part === "board" ? "board" : "lesson";
   const question = String(src.q || src.question || "").trim().slice(0, 200);
-  const level = src.level === "big" ? "big" : "little";
+  const level = ["big", "teen"].includes(src.level) ? src.level : "little";
   const lang = src.lang === "es" ? "es" : "en";
   const context = isGet ? "" : String(src.context || "").slice(0, 120);
   const more = !isGet && src.more === true;
   const prev = isGet ? "" : String(src.prev || "").slice(0, 1200);
-  const mode = ["skill", "work"].includes(src.mode) ? src.mode : "curious";
+  const mode = ["skill", "work", "why"].includes(src.mode) ? src.mode : "curious";
   const subject = String(src.subject || "").replace(/[^A-Za-zÀ-ÿ &]/g, "").slice(0, 40);
   const action = !isGet && ACTIONS[src.action] ? src.action : "";
   if (src.part === "check" && !isGet) return checkWork(src, send, level, lang);
+  if (src.part === "topics") return topicList(src, send, level, lang);
+  if (src.part === "test") return makeTest(src, send, level, lang);
   // the drawing request carries Mr. Paul's answer, one paragraph per line, so each picture matches a paragraph
   const paras = String(src.a || "").split("\n").map(x => x.trim()).filter(Boolean).slice(0, 4).map(x => x.slice(0, 700));
   // optional picture (POST only): explained, never saved
   const image = isGet ? "" : String(src.image || "");
+  const pdf = isGet ? "" : String(src.pdf || "");
+  const doctext = isGet ? "" : String(src.doctext || "").slice(0, 12000);
+  if (pdf && (pdf.length > 4300000 || !/^[A-Za-z0-9+/=]+$/.test(pdf.slice(0, 200)))) return send(400, { error: "bad_file" });
   if (image && (image.length > 4000000 || !/^[A-Za-z0-9+/=]+$/.test(image.slice(0, 200)))) return send(400, { error: "bad_image" });
   if (!question) return send(400, { error: "empty" });
 
@@ -415,7 +490,11 @@ module.exports = async (req, res) => {
   }
 
   let lesson;
-  const content = image ? [
+  const fileNote = `\n\nThe child attached their own file above (school or homeschool work, a worksheet or their writing). Read it, figure out what they need help with, and teach about it following the instructions above. Start by saying briefly what you see in the file.`;
+  const content = pdf ? [
+    { type: "document", source: { type: "base64", media_type: "application/pdf", data: pdf } },
+    { type: "text", text: user + fileNote }
+  ] : doctext ? user + `\n\nThe child attached this text from their own file:\n"""\n${doctext.replace(/"""/g, "")}\n"""` + fileNote.replace("above", "") : image ? [
     { type: "image", source: { type: "base64", media_type: "image/jpeg", data: image } },
     { type: "text", text: user + `\n\nThe child attached the photo above. Figure out what it shows and teach a lesson about it (or answer their question about it). Start by saying what you see in the photo. For image_query, use plain words for the main thing in the photo.` }
   ] : user;
@@ -426,6 +505,8 @@ module.exports = async (req, res) => {
   }
 
   if (!["lesson", "redirect", "grownup", "help"].includes(lesson.type)) lesson.type = "lesson";
+  lesson.photos = (Array.isArray(lesson.photos) ? lesson.photos : []).filter(x => x && x.query).slice(0, 4)
+    .map(x => ({ query: String(x.query).replace(/[^\w\s'-]/g, " ").slice(0, 60), caption: String(x.caption || "").slice(0, 120) }));
   lesson.practice = (Array.isArray(lesson.practice) ? lesson.practice : []).filter(x => x && x.q && x.answer).slice(0, 5)
     .map(x => ({ q: String(x.q).slice(0, 300), answer: String(x.answer).slice(0, 60), hint: String(x.hint || "").slice(0, 300) }));
   if (lesson.type === "grownup") return send(200, GROWNUP[lang], true);
