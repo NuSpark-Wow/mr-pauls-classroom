@@ -214,6 +214,7 @@ body.present .caption{font-size:clamp(22px,2vw,30px)}
 @keyframes readyGlow{0%,100%{box-shadow:0 0 0 0 rgba(163,230,53,0)}50%{box-shadow:0 0 0 6px rgba(163,230,53,.4)}}
 #views button.fresh{animation:readyGlow 1.2s ease-in-out 3}
 @media (prefers-reduced-motion:reduce){#pause.ready,#views button.fresh{animation:none;outline:2px solid #a3e635}}
+#startOver{color:#c0392b;font-weight:800}
 </style>
 <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
 <script defer src="/_vercel/insights/script.js"></script>
@@ -233,6 +234,9 @@ body.present .caption{font-size:clamp(22px,2vw,30px)}
         <button id="vMan" class="on">🔊 Man</button>
         <button id="vWoman">🔊 Woman</button>
         <button id="vMute" aria-label="Mute: no voice, read the words">🔇 Mute</button>
+      </div>
+      <div class="levels voices" role="group" aria-label="Start over">
+        <button id="startOver" title="Stop and start over with a new topic">⟲ Start over</button>
       </div>
       <div class="levels voices" role="group" aria-label="Voice speed" style="display:none">
         <button id="sSlow">🐢 Slower</button>
@@ -351,7 +355,7 @@ const T = {
     another: "Ask another question anytime!", tapAgain: "Tap Ask to try again.", watch: "Watch the board!", start: "Ask a question to start!",
     step: "Step", legend: "🔤 What these mean", mathWorks: "🧮 How the math works", welcomeTitle: "Hi, I'm Mr. Paul! 👋",
     welcomeText: "Ask me a question with your voice or by typing. I'll explain it, draw it on my smart board, and then we'll do a quick quiz together!",
-    again: "🔊 Hear it again", stop: "⏹ Stop", pause: "⏸ Pause", resume: "▶ Continue", explainBtn: "📖 Explain this picture", hideExplain: "📖 Hide explanation", hideBtn: "Hide explanation", nextReady: "next step ready", explaining: "Mr. Paul is getting the explanation ready… just a few seconds!", explainFail: "Oops, that didn't work. Tap the button again in a moment.", aboutPic: "About this picture", eachWord: "What each word means", whyMatters: "Why it matters: ", print: "🖨️ Print", helpful: "Helpful?", thanks: "Thanks! 💛",
+    again: "🔊 Hear it again", stop: "⏹ Stop", pause: "⏸ Pause", resume: "▶ Continue", startOver: "⟲ Start over", explainBtn: "📖 Explain this picture", hideExplain: "📖 Hide explanation", hideBtn: "Hide explanation", nextReady: "next step ready", explaining: "Mr. Paul is getting the explanation ready… just a few seconds!", explainFail: "Oops, that didn't work. Tap the button again in a moment.", aboutPic: "About this picture", eachWord: "What each word means", whyMatters: "Why it matters: ", print: "🖨️ Print", helpful: "Helpful?", thanks: "Thanks! 💛",
     hImg: "📷 What it looks like", hWow: "⭐ Surprise Fact!", hTry: "🧪 Try It at Home", hQuiz: "✏️ Quick Check",
     gotIt: "🎉 You got it! ", goodTry: "Good try! Pick another one.", answerKey: "Answer: ",
     hDeep: "🔍 Keep learning!", askAbout: "💬 Ask about this", tellMore: "➕ Tell me more", orTry: "Or try one of these:",
@@ -381,7 +385,7 @@ const T = {
     another: "¡Haz otra pregunta cuando quieras!", tapAgain: "Toca Preguntar para intentar otra vez.", watch: "¡Mira la pizarra!", start: "¡Haz una pregunta para empezar!",
     step: "Paso", legend: "🔤 Qué significan", mathWorks: "🧮 Cómo funcionan las matemáticas", welcomeTitle: "¡Hola, soy Mr. Paul! 👋",
     welcomeText: "Hazme una pregunta con tu voz o escribiendo. Te la explico, la dibujo en mi pizarra, ¡y luego hacemos un juego de preguntas!",
-    again: "🔊 Escuchar otra vez", stop: "⏹ Parar", pause: "⏸ Pausa", resume: "▶ Seguir", explainBtn: "📖 Explícame el dibujo", hideExplain: "📖 Ocultar explicación", hideBtn: "Ocultar explicación", nextReady: "siguiente paso listo", explaining: "Mr. Paul está preparando la explicación… ¡solo unos segundos!", explainFail: "Uy, no funcionó. Toca el botón otra vez en un momento.", aboutPic: "Sobre este dibujo", eachWord: "Qué significa cada palabra", whyMatters: "Por qué importa: ", print: "🖨️ Imprimir", helpful: "¿Te ayudó?", thanks: "¡Gracias! 💛",
+    again: "🔊 Escuchar otra vez", stop: "⏹ Parar", pause: "⏸ Pausa", resume: "▶ Seguir", startOver: "⟲ Empezar de nuevo", explainBtn: "📖 Explícame el dibujo", hideExplain: "📖 Ocultar explicación", hideBtn: "Ocultar explicación", nextReady: "siguiente paso listo", explaining: "Mr. Paul está preparando la explicación… ¡solo unos segundos!", explainFail: "Uy, no funcionó. Toca el botón otra vez en un momento.", aboutPic: "Sobre este dibujo", eachWord: "Qué significa cada palabra", whyMatters: "Por qué importa: ", print: "🖨️ Imprimir", helpful: "¿Te ayudó?", thanks: "¡Gracias! 💛",
     hImg: "📷 Así se ve", hWow: "⭐ ¡Dato sorpresa!", hTry: "🧪 Pruébalo en casa", hQuiz: "✏️ Repaso rápido",
     gotIt: "🎉 ¡Muy bien! ", goodTry: "¡Buen intento! Elige otra.", answerKey: "Respuesta: ",
     hDeep: "🔍 ¡Sigue aprendiendo!", askAbout: "💬 Pregunta sobre esto", tellMore: "➕ Cuéntame más", orTry: "O prueba una de estas:",
@@ -426,6 +430,7 @@ function applyText(){
   $("lnEn").classList.toggle("on", lang === "en"); $("lnEs").classList.toggle("on", lang === "es");
   if (rec) rec.lang = lang === "es" ? "es-US" : "en-US";
   renderStarters();
+  if ($("startOver")) $("startOver").textContent = L.startOver;
   if (typeof studyUI === "function") studyUI();
   if (typeof explainFor !== "undefined" && explainFor) closeExplain();   // the explanation was in the other language
 }
@@ -1319,6 +1324,15 @@ welcome();
   setInterval(send, 1500);
   send();
 })();
+})();
+
+// Start over: stops everything and clears the topic, so the visitor can ask something new (or pick another tool)
+(function(){ const b = document.getElementById("startOver"); if (!b) return;
+  b.onclick = () => {
+    try { speechSynthesis.cancel(); } catch(e) {}
+    try { if (typeof ctx !== "undefined" && ctx) ctx.close(); } catch(e) {}
+    location.replace(location.pathname);   // a fresh page, without any shared-link question
+  };
 })();
 </script>
 </body>
