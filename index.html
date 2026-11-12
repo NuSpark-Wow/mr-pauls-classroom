@@ -294,6 +294,8 @@ body.present .caption{font-size:clamp(22px,2vw,30px)}
 .rategrp input{width:130px;accent-color:#f4a300;height:28px}
 .rategrp .rl{font-size:18px}
 .rategrp #rateVal{min-width:92px;font-size:13px!important;padding:6px 8px!important}
+.veil{filter:blur(5px);opacity:.45;pointer-events:none;user-select:none;transition:filter .3s,opacity .3s}
+.studybar #bCont.ready:not(:disabled){animation:readyGlow 1.6s ease-in-out infinite;border-color:#a3e635}
 </style>
 <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
 <script defer src="/_vercel/insights/script.js"></script>
@@ -780,7 +782,37 @@ function addStep(s){
   else syncBoard(lastCi);
 }
 // Narration waits for picture 1, then each picture appears when Mr. Paul reaches its paragraph
+/* ---------- ▶ Start: the first lesson of a visit waits for the visitor's tap once the first picture is up ---------- */
+// After that first tap, every later lesson starts by itself the moment its first picture appears.
+var firstStartDone = false, startReady = false;
+function startGateOn(){
+  return !firstStartDone && !narrStarted && !(typeof silentMode !== "undefined" && silentMode) && !!lesson && lesson.type === "lesson" && (typeof boardOff === "undefined" || !boardOff);
+}
+function startLabels(){ return (typeof lang !== "undefined" && lang === "es" ? ["▶ Empezar", "⏳ Dibujando el primer dibujo…"] : ["▶ Start", "⏳ Drawing the first picture…"]); }
+function ding(){
+  if (typeof voicePref !== "undefined" && voicePref === "mute") return;
+  try { unlock(); const o = ctx.createOscillator(), gn = ctx.createGain(), t0 = ctx.currentTime;
+    o.type = "sine"; o.frequency.setValueAtTime(880, t0); o.frequency.setValueAtTime(1320, t0 + 0.12);
+    gn.gain.setValueAtTime(0.0001, t0); gn.gain.exponentialRampToValueAtTime(0.22, t0 + 0.02); gn.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.45);
+    o.connect(gn).connect(ctx.destination); o.start(t0); o.stop(t0 + 0.5); } catch(e) {}
+}
+function veilText(){ if (startGateOn() && $("read")) $("read").classList.add("veil"); if (typeof studyUI === "function") studyUI(); }
+function markStartReady(){
+  if (!startReady) { startReady = true; ding(); }
+  if ($("thinkText")) $("thinkText").textContent = startLabels()[0].replace("▶ ", "") + " ⬇";
+  if (typeof studyUI === "function") studyUI();
+}
+function doStart(){
+  firstStartDone = true; startReady = false;
+  if ($("read")) $("read").classList.remove("veil");
+  beginNarration();
+  if (typeof studyUI === "function") studyUI();
+}
 function startNarration(){
+  if (startGateOn()) { markStartReady(); return; }   // first lesson: wait for the ▶ Start tap
+  beginNarration();
+}
+function beginNarration(){
   if (narrStarted) return;
   narrStarted = true; clearTimeout(narrTimer);
   const my = reqId;
@@ -825,7 +857,7 @@ async function ask(text, context, opts){
 
   // words come first; then each paragraph gets its own picture
   boardOff = false; lastReveal = 0; clearTimeout(pumpTimer); clearTimeout(narrTimer);
-  narrStarted = false; lastCi = -1; audioP = null;
+  narrStarted = false; startReady = false; lastCi = -1; audioP = null;
   buildBoard([]); liveBoard = true;
 
   let data = null, reason = "N0";
@@ -843,6 +875,7 @@ async function ask(text, context, opts){
     if (opts.image) { clearPhoto(); opts.boardTitle = data.title || "the picture"; }
     if (opts.pdf || opts.doctext) { clearPhoto(); opts.boardTitle = data.title || "the file"; }
     lesson = data; lesson._action = opts.action || ""; render(); logLesson(lesson, opts);
+    veilText();
     if (opts.scroll) toBoard();
     $("hint").textContent = t().another;
     track("lesson", { topic: String(data.title || "").slice(0, 80), level, lang, type: data.type });
@@ -866,7 +899,7 @@ async function ask(text, context, opts){
   // words are showing; Mr. Paul starts talking as soon as picture 1 is on the board
   if (data.type !== "lesson") { boardOff = true; $("thinking").classList.remove("on"); return; }
   $("thinkText").textContent = t().drawing; $("thinking").classList.add("on");
-  narrTimer = setTimeout(startNarration, 15000);   // safety valve if a picture is slow
+  narrTimer = setTimeout(startNarration, 45000);   // safety valve if a picture is slow
   const a = (data.answer || []).map(x => String(x).trim()).filter(Boolean).slice(0, 4).map(x => x.slice(0, 700)).join("\n");
   let total = 0;
   for (let k = 0; k < 2 && total === 0 && my === reqId; k++) {
@@ -1558,6 +1591,7 @@ var boardHeld = false;
 function studyUI(){
   const bp = $("bPause"), bc = $("bCont"), be = $("bExplain"); if (!bp) return;
   $("studybar").classList.toggle("hide", !lesson);
+  $("studybar").classList.toggle("hide", !lesson);
   const L = t();
   const moving = !speaking && groups.length > 0 && shown < groups.length && !manual;
   bp.textContent = L.pause; bc.textContent = L.resume;
@@ -1568,10 +1602,12 @@ function studyUI(){
   bc.classList.toggle("ready", (paused || boardHeld) && readyWhilePaused);
   be.textContent = explainFor && !$("explain").classList.contains("hide") ? L.hideExplain : L.explainBtn;
   be.disabled = shown === 0;
+  if (startGateOn()) { const sl = startLabels(); bc.disabled = !startReady; bc.textContent = startReady ? sl[0] : sl[1]; bc.classList.toggle("ready", startReady); bc.classList.remove("on"); bp.disabled = true; bp.classList.remove("on"); }
 }
 function holdBoard(){ if (speaking) pauseVoice(); boardHeld = true; clearTimeout(pumpTimer); studyUI(); }
 $("bPause").onclick = () => { unlock(); holdBoard(); };
 $("bCont").onclick = () => {
+  if (startGateOn()) { unlock(); if (startReady) doStart(); return; }
   unlock();
   const wasHeld = boardHeld; boardHeld = false;
   if (paused) unpause();
