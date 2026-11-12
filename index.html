@@ -1978,13 +1978,32 @@ var boardSeen = false, boardInView = true, introQueue = null;
   } catch(e) { boardSeen = true; boardInView = true; }
 })();
 function whenBoardSeen(fn){ if (boardSeen) fn(); else introQueue = fn; }
+// Mr. Paul himself on the welcome board: the cartoon for kids, the teen version for grades 7-12.
+// The frame is drawn like the rest of the board; the picture is added by this page's own code
+// (the board's safety filter blocks pictures inside AI drawings, which is what we want for those).
+function mrPaulHello(){
+  return "<circle cx='190' cy='285' r='104' fill='#fff7d6' stroke='#f0a020' stroke-width='6'/>";
+}
+function addMrPaulPic(g){
+  if (!g) return;
+  const pic = level === "teen" ? "mrpaul-teen.jpg" : "mrpaul-kid.jpg";
+  const defs = document.createElementNS(NS, "defs"), clip = document.createElementNS(NS, "clipPath"), c = document.createElementNS(NS, "circle");
+  clip.setAttribute("id", "mpHello"); c.setAttribute("cx", "190"); c.setAttribute("cy", "285"); c.setAttribute("r", "98");
+  clip.appendChild(c); defs.appendChild(clip);
+  const img = document.createElementNS(NS, "image");
+  img.setAttribute("href", pic); img.setAttribute("x", "92"); img.setAttribute("y", "187"); img.setAttribute("width", "196"); img.setAttribute("height", "196");
+  img.setAttribute("clip-path", "url(#mpHello)"); img.setAttribute("preserveAspectRatio", "xMidYMid slice");
+  img.classList.add("mpPic");
+  g.appendChild(defs); g.appendChild(img);
+}
 function welcome(){
   const S = t(), W = S.wm[curMode] || S.wm.curious;
   buildBoard([
     { caption: W.c[0], svg: "<text x='400' y='78' text-anchor='middle' font-family='Patrick Hand' font-size='42' fill='#24292f'>" + esc(S.wb1) + "</text><text x='400' y='142' text-anchor='middle' font-family='Patrick Hand' font-size='60' fill='#1f6feb'>" + esc(S.wb2) + "</text>" },
-    { caption: W.c[1], svg: WELCOME_ICONS[curMode] || WELCOME_ICONS.curious },
+    { caption: W.c[1], svg: mrPaulHello() + "<g transform='translate(85,0)'>" + (WELCOME_ICONS[curMode] || WELCOME_ICONS.curious) + "</g>" },
     { caption: W.c[2], svg: "<text x='400' y='450' text-anchor='middle' font-family='Patrick Hand' font-size='50' fill='#2da44e'>" + esc(W.b3) + "</text>" }
   ]);
+  addMrPaulPic(groups[1]);
   (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => whenBoardSeen(() => { if (liveBoard || lesson || busy) return; manual = true; playSteps(); }));
 }
 
