@@ -428,6 +428,7 @@ async function explainFigure(src, send) {
 }
 
 module.exports = async (req, res) => {
+  if (!(await require("./_lwgate")(req, res, "mr-pauls-classroom"))) return;
   if (!allowedRequest(req)) return blockRequest(res);
   const isGet = req.method === "GET";
   if (!isGet && req.method !== "POST") return res.status(405).json({ error: "GET or POST only" });

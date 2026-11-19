@@ -8,6 +8,7 @@ const DEFAULT_WOMAN = "oClOrzqamOXmtcB8iqTj"; // Emma - Bright Kids Educator
 const cache = new Map(); // repeat answers don't cost twice (resets when the server sleeps)
 
 module.exports = async (req, res) => {
+  if (!(await require("./_lwgate")(req, res, "mr-pauls-classroom"))) return;
   if (!allowedRequest(req)) return blockRequest(res);
   const key = process.env.ELEVENLABS_API_KEY;
   // Health check you can open in a browser: /api/speak  (never shows the key)
