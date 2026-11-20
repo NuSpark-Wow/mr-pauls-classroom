@@ -16,6 +16,9 @@
 //   LW_CREDIT_CENTS     credit per friend in cents (default 500)
 //   LW_CAP_CENTS        most credit applied per month in cents (default 2500)
 //   LW_NOTIFY_URL       optional: a Zapier or GHL webhook URL that gets new_member / credit_earned events
+//   GHL_TOKEN           optional: GHL Private Integration token (contacts write) — sends members into GHL
+//   GHL_LOCATION        GHL location (sub-account) ID
+//   GHL fields used: lw_code (code), lw_credit_note (credit message). Tags: lw-member, lw-credit
 //   Upstash (already set): KV_REST_API_URL / KV_REST_API_TOKEN
 
 const crypto = require("crypto");
@@ -27,6 +30,9 @@ const COUPON = process.env.LW_COUPON || "SHARESAVE5";
 const CREDIT = parseInt(process.env.LW_CREDIT_CENTS || "500", 10);
 const CAP = parseInt(process.env.LW_CAP_CENTS || "2500", 10);
 const NOTIFY = process.env.LW_NOTIFY_URL || "";
+const GHL_TOKEN = process.env.GHL_TOKEN || "";
+const GHL_LOCATION = process.env.GHL_LOCATION || "";
+const GHL = "https://services.leadconnectorhq.com";
 const RURL = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || "";
 const RTOK = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || "";
 
@@ -60,7 +66,37 @@ async function redis(cmds) {
   const out = await r.json();
   return out.map(x => (x && "result" in x ? x.result : null));
 }
+async function ghl(method, path, body) {
+  const r = await fetch(GHL + path, {
+    method, headers: { Authorization: "Bearer " + GHL_TOKEN, Version: "2021-07-28", "Content-Type": "application/json", Accept: "application/json" },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error("GHL " + r.status + ": " + (j.message || JSON.stringify(j).slice(0, 200)));
+  return j;
+}
+// Send the member into GHL: code field + tag. A GHL workflow on the tag sends the email.
+async function toGHL(payload) {
+  if (!GHL_TOKEN || !GHL_LOCATION || !payload.email) return;
+  const [first, ...rest] = String(payload.name || "").trim().split(/\s+/);
+  const fields = [{ key: "lw_code", field_value: payload.code || "" }];
+  if (payload.event === "credit_earned") {
+    const waiting = payload.waiting_dollars ? ` $${payload.waiting_dollars} is waiting and will come off a following bill.` : "";
+    fields.push({ key: "lw_credit_note", field_value: `${payload.friend_first_name || "A friend"} joined with your code, so $${payload.credit_dollars} comes off your next LearnWow bill.${waiting}` });
+  }
+  const up = await ghl("POST", "/contacts/upsert", {
+    locationId: GHL_LOCATION, email: payload.email, firstName: first || undefined, lastName: rest.join(" ") || undefined,
+    source: "LearnWow", customFields: fields
+  });
+  const id = up.contact && up.contact.id;
+  if (!id) return;
+  const tag = payload.event === "credit_earned" ? "lw-credit" : "lw-member";
+  // remove then add, so the "tag added" workflow fires every time
+  try { await ghl("DELETE", `/contacts/${id}/tags`, { tags: [tag] }); } catch (e) {}
+  await ghl("POST", `/contacts/${id}/tags`, { tags: [tag] });
+}
 async function notify(payload) {
+  try { await toGHL(payload); } catch (e) { console.log("GHL error:", e.message); }
   if (!NOTIFY) return;
   try { await fetch(NOTIFY, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }); } catch (e) {}
 }
@@ -251,4 +287,4 @@ module.exports = async (req, res) => {
   }
 };
 module.exports.config = { api: { bodyParser: false } };
-module.exports._test = { handle, verify, baseFromName, lookupMember };
+module.exports._test = { handle, verify, baseFromName, lookupMember, toGHL };
