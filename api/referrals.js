@@ -1,7 +1,7 @@
 // LearnWow Share & Save — referral codes and credits, driven by Stripe webhooks.
 //
 // What it does
-//  1. checkout.session.completed (a new LearnWow member): creates their personal code, e.g. SARAH5,
+//  1. checkout.session.completed (a new LearnWow member): creates their personal code, e.g. SARAHWOW,
 //     on the $5 coupon (first-time customers only) and saves it on their Stripe customer.
 //  2. invoice.paid (a real charge, not the $0 trial): if the invoice used a member's code, the member
 //     who owns that code earns $5 (once per friend). Credits are applied as Stripe customer balance,
@@ -100,11 +100,9 @@ async function makeCode(customerId, name, email) {
   const cust = await stripe("GET", "/customers/" + customerId);
   if (cust.metadata && cust.metadata.lw_code) return { code: cust.metadata.lw_code, existed: true };
   const base = baseFromName(name || cust.name, email || cust.email);
-  const letters = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-  let code = base + "5";
-  for (let i = 0; i < 30 && (await codeTaken(code)); i++) {
-    code = base + "5" + (i < letters.length ? letters[i] : String(i));
-  }
+  // Code pattern: first name + WOW (SARAHWOW). Taken? SARAHWOW2, SARAHWOW3, ...
+  let code = base + "WOW";
+  for (let n = 2; n < 60 && (await codeTaken(code)); n++) code = base + "WOW" + n;
   await stripe("POST", "/promotion_codes", {
     coupon: COUPON, code,
     restrictions: { first_time_transaction: "true" },
