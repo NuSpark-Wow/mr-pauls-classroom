@@ -79,17 +79,22 @@ async function ghl(method, path, body) {
 async function toGHL(payload) {
   if (!GHL_TOKEN || !GHL_LOCATION || !payload.email) return;
   const [first, ...rest] = String(payload.name || "").trim().split(/\s+/);
-  const fields = [{ key: "lw_code", field_value: payload.code || "" }];
+  const fields = payload.code ? [{ key: "lw_code", field_value: payload.code }] : [];
   if (payload.event === "credit_earned") {
     const waiting = payload.waiting_dollars ? ` $${payload.waiting_dollars} is waiting and will come off a following bill.` : "";
     fields.push({ key: "lw_credit_note", field_value: `${payload.friend_first_name || "A friend"} joined with your code, so $${payload.credit_dollars} comes off your next LearnWow bill.${waiting}` });
   }
   const up = await ghl("POST", "/contacts/upsert", {
     locationId: GHL_LOCATION, email: payload.email, firstName: first || undefined, lastName: rest.join(" ") || undefined,
-    source: "LearnWow", customFields: fields
+    source: "LearnWow", customFields: fields.length ? fields : undefined
   });
   const id = up.contact && up.contact.id;
   if (!id) return;
+  if (payload.event === "canceled" || payload.event === "reactivated") {
+    if (payload.event === "canceled") await ghl("POST", `/contacts/${id}/tags`, { tags: ["lw-canceled"] });
+    else { try { await ghl("DELETE", `/contacts/${id}/tags`, { tags: ["lw-canceled"] }); } catch (e) {} }
+    return;
+  }
   const tag = payload.event === "credit_earned" ? "lw-credit" : "lw-member";
   // remove then add, so the "tag added" workflow fires every time
   try { await ghl("DELETE", `/contacts/${id}/tags`, { tags: [tag] }); } catch (e) {}
@@ -223,6 +228,15 @@ async function handle(event) {
     return out;
   }
 
+  if (event.type === "customer.subscription.updated" || event.type === "customer.subscription.deleted") {
+    const isLW = (o.items && o.items.data || []).some(it => it.price && it.price.id === PRICE_ID);
+    if (!isLW || !o.customer) return { skipped: "not LearnWow" };
+    const canceled = event.type === "customer.subscription.deleted" || o.status === "canceled" || !!o.cancel_at_period_end || !!o.cancel_at;
+    const cust = await stripe("GET", "/customers/" + o.customer);
+    await notify({ event: canceled ? "canceled" : "reactivated", email: cust.email, name: cust.name });
+    return { canceled };
+  }
+
   return { skipped: event.type };
 }
 
@@ -280,6 +294,11 @@ async function confirmWithStripe(event) {
     const inv = await stripe("GET", "/invoices/" + o.id);
     if (inv.status !== "paid") return null;
     return { type: event.type, data: { object: inv } };
+  }
+  if (event.type === "customer.subscription.updated" || event.type === "customer.subscription.deleted") {
+    if (!o.id) return null;
+    const sub = await stripe("GET", "/subscriptions/" + o.id);
+    return { type: event.type, data: { object: sub } };
   }
   return { type: "ignored", data: { object: {} } };
 }
