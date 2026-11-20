@@ -166,7 +166,7 @@ async function handle(event) {
     if (promo && promo.referrer !== o.customer) {
       const first = await redis([["SET", `lw:ref:credited:${o.customer}`, promo.referrer, "NX"]]);
       if (first[0] === "OK") {
-        await redis([["INCRBY", `lw:ref:bank:${promo.referrer}`, CREDIT]]);
+        await redis([["INCRBY", `lw:ref:bank:${promo.referrer}`, CREDIT], ["INCR", `lw:ref:friends:${promo.referrer}`], ["INCRBY", `lw:ref:earned:${promo.referrer}`, CREDIT]]);
         const res = await applyBank(promo.referrer);
         const ref = await stripe("GET", "/customers/" + promo.referrer);
         await notify({
@@ -186,8 +186,51 @@ async function handle(event) {
   return { skipped: event.type };
 }
 
+// ---------- 3. Members Area card: "what is my code and how much have I saved?" ----------
+async function lookupMember(pass) {
+  const { readPass } = require("./gate");
+  const who = readPass(pass);
+  if (!who) return { status: "no_pass" };
+  let customer = null;
+  if (who.s && /^sub_/.test(who.s)) {
+    try { const sub = await stripe("GET", "/subscriptions/" + who.s); customer = await stripe("GET", "/customers/" + sub.customer); } catch (e) {}
+  }
+  if (!customer && who.e) {
+    const list = await stripe("GET", "/customers", { email: who.e, limit: 10 });
+    const all = list.data || [];
+    customer = all.find(c => c.metadata && c.metadata.lw_code) || null;
+    if (!customer) {
+      for (const c of all) {
+        const subs = await stripe("GET", "/subscriptions", { customer: c.id, status: "all", limit: 10 });
+        if ((subs.data || []).some(sb => ["active", "trialing", "past_due"].includes(sb.status) && (sb.items.data || []).some(it => it.price && it.price.id === PRICE_ID))) { customer = c; break; }
+      }
+    }
+  }
+  if (!customer) return { status: "no_billing" };
+  let code = customer.metadata && customer.metadata.lw_code;
+  if (!code) code = (await makeCode(customer.id, customer.name, customer.email)).code;
+  const k = customer.id;
+  const [friends, earned, waiting, applied] = await redis([["GET", `lw:ref:friends:${k}`], ["GET", `lw:ref:earned:${k}`], ["GET", `lw:ref:bank:${k}`], ["GET", `lw:ref:applied:${k}:${month()}`]]);
+  let signedUp = 0;
+  try { const pc = await stripe("GET", "/promotion_codes", { code, limit: 1 }); signedUp = (pc.data && pc.data[0] && pc.data[0].times_redeemed) || 0; } catch (e) {}
+  return {
+    status: "ok", code,
+    friends_signed_up: signedUp,
+    friends_paid: parseInt(friends || "0", 10),
+    earned_dollars: parseInt(earned || "0", 10) / 100,
+    waiting_dollars: parseInt(waiting || "0", 10) / 100,
+    applied_this_month_dollars: parseInt(applied || "0", 10) / 100,
+    cap_dollars: CAP / 100, credit_dollars: CREDIT / 100
+  };
+}
+
 module.exports = async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
+  if (req.method === "GET" && req.query && req.query.me) {
+    res.setHeader("Content-Type", "application/json");
+    try { const out = await lookupMember(req.headers["x-lw-pass"] || ""); res.statusCode = 200; return res.end(JSON.stringify(out)); }
+    catch (e) { res.statusCode = 500; return res.end(JSON.stringify({ status: "error", error: e.message })); }
+  }
   if (req.method !== "POST") {
     res.statusCode = 200; res.setHeader("Content-Type", "application/json");
     return res.end(JSON.stringify({ ok: true, ready: !!(STRIPE_KEY && WHSEC && RURL && RTOK) }));
@@ -208,4 +251,4 @@ module.exports = async (req, res) => {
   }
 };
 module.exports.config = { api: { bodyParser: false } };
-module.exports._test = { handle, verify, baseFromName };
+module.exports._test = { handle, verify, baseFromName, lookupMember };
