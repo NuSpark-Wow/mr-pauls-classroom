@@ -139,11 +139,15 @@ async function makeCode(customerId, name, email) {
   // Code pattern: first name + WOW (SARAHWOW). Taken? SARAHWOW2, SARAHWOW3, ...
   let code = base + "WOW";
   for (let n = 2; n < 60 && (await codeTaken(code)); n++) code = base + "WOW" + n;
-  await stripe("POST", "/promotion_codes", {
-    coupon: COUPON, code,
-    restrictions: { first_time_transaction: "true" },
-    metadata: { lw_referrer: customerId }
-  });
+  const common = { code, restrictions: { first_time_transaction: "true" }, metadata: { lw_referrer: customerId } };
+  try {
+    // newer Stripe API versions: promotion[type]=coupon, promotion[coupon]=...
+    await stripe("POST", "/promotion_codes", Object.assign({ promotion: { type: "coupon", coupon: COUPON } }, common));
+  } catch (e) {
+    if (e.code !== "parameter_unknown" && e.code !== "parameter_missing") throw e;
+    // older API versions: coupon=...
+    await stripe("POST", "/promotion_codes", Object.assign({ coupon: COUPON }, common));
+  }
   await stripe("POST", "/customers/" + customerId, { metadata: { lw_code: code } });
   return { code, existed: false };
 }
