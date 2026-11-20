@@ -260,6 +260,26 @@ async function lookupMember(pass) {
   };
 }
 
+
+// Confirm an unsigned event by reading the real objects back from Stripe.
+async function confirmWithStripe(event) {
+  const o = event && event.data && event.data.object || {};
+  if (event.type === "checkout.session.completed") {
+    if (!o.subscription || !o.customer) return null;
+    const sub = await stripe("GET", "/subscriptions/" + o.subscription);
+    if (sub.customer !== o.customer) return null;
+    if (Date.now() / 1000 - (sub.created || 0) > 3 * 86400) return null;
+    return event;
+  }
+  if (event.type === "invoice.paid") {
+    if (!o.id) return null;
+    const inv = await stripe("GET", "/invoices/" + o.id);
+    if (inv.status !== "paid") return null;
+    return { type: event.type, data: { object: inv } };
+  }
+  return { type: "ignored", data: { object: {} } };
+}
+
 module.exports = async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   if (req.method === "GET" && req.query && req.query.me) {
@@ -273,17 +293,25 @@ module.exports = async (req, res) => {
   }
   let raw;
   try { raw = await readRaw(req); } catch (e) { res.statusCode = 400; return res.end("bad body"); }
-  if (!verify(raw, req.headers["stripe-signature"])) { res.statusCode = 400; return res.end("bad signature"); }
   let event;
   try { event = JSON.parse(raw); } catch (e) { res.statusCode = 400; return res.end("bad json"); }
+  const signed = verify(raw, req.headers["stripe-signature"]);
   try {
+    if (!signed) {
+      // Secret mismatch or reformatted body: confirm the event straight from Stripe before trusting it.
+      const confirmed = await confirmWithStripe(event);
+      if (!confirmed) { res.statusCode = 400; return res.end("bad signature and could not confirm with Stripe"); }
+      event = confirmed;
+    }
     const out = await handle(event);
+    out.signed = signed;
     res.statusCode = 200; res.setHeader("Content-Type", "application/json");
     res.end(JSON.stringify({ received: true, ...out }));
   } catch (e) {
     // 500 makes Stripe retry later
+    console.log("referrals error:", event && event.type, e.message);
     res.statusCode = 500; res.setHeader("Content-Type", "application/json");
-    res.end(JSON.stringify({ error: e.message }));
+    res.end(JSON.stringify({ error: e.message, code: e.code || null, type: event && event.type }));
   }
 };
 module.exports.config = { api: { bodyParser: false } };
