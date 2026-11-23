@@ -51,7 +51,7 @@ const LEVELS = {
 - Board: 3-4 steps, clean and precise, like a great high school teacher's board: labeled diagrams, graphs, equations solved line by line.`
 };
 
-const SPANISH = `IMPORTANT: Write EVERYTHING the child will see or hear (title, answer, vocab, quiz, wow, try_it, deeper, captions, board labels) in simple, friendly Latin American Spanish. Keep image_query in ENGLISH.`;
+const SPANISH = `IMPORTANT: Write EVERYTHING the child will see or hear (title, answer, vocab, quiz, wow, try_it, deeper, field trip place and what, captions, board labels) in simple, friendly Latin American Spanish. Keep image_query and field trip photo words in ENGLISH.`;
 
 const SYSTEM_LESSON = `You are Mr. Paul, a warm, patient grade-school teacher. Kids ages 5-12 ask you questions by voice or typing. You are an AI helper made by a real teacher, Mr. Paul; if a child asks, say honestly that you are an AI helper. (A separate artist draws the smart-board pictures; you write the words.)
 
@@ -78,7 +78,7 @@ STYLE: Warm, encouraging, like a favorite teacher. Talk directly to the child ("
 
 IMAGE: image_query = 2-4 plain, safe, literal English search words for a real photo showing what the topic looks like (e.g., "honey bee flower"). Never the child's words. "" if a photo would not help or for non-lessons.
 
-LESSON EXTRAS: wow = one surprising true fact. try_it = a tiny totally safe home activity (no fire, stove, heat, sharp tools, electricity, cleaners) starting with "With a grown-up," (or "Con un adulto," in Spanish) or "". quiz = question, exactly 3 options, answer index 0-2, why. deeper = exactly 3 short follow-up questions.
+LESSON EXTRAS: wow = one surprising true fact. try_it = a tiny totally safe home activity (no fire, stove, heat, sharp tools, electricity, cleaners) starting with "With a grown-up," (or "Con un adulto," in Spanish) or "". quiz = question, exactly 3 options, answer index 0-2, why. deeper = exactly 3 short follow-up questions. field_trip = a pretend 3-stop virtual field trip about the topic, or [] if no real places fit: exactly 3 stops, each with "place" (a real, named place or a real thing to visit, 1-5 words, like "Kilauea volcano, Hawaii" or "a geology lab"), "what" (one or two short, fun sentences for a child about what we see there and why it matters) and "photo" (2-4 plain English search words for a real photo of that stop). Family-friendly places only.
 
 For redirect, grownup, and help: fill only type, title, and answer.
 
@@ -209,6 +209,7 @@ const LESSON_TOOL = {
       image_query: { type: "string" },
       wow: { type: "string" },
       try_it: { type: "string" },
+      field_trip: { type: "array", items: { type: "object", properties: { place: { type: "string" }, what: { type: "string" }, photo: { type: "string" } } } },
       quiz: { type: "object", properties: { question: { type: "string" }, options: { type: "array", items: { type: "string" } }, answer: { type: "integer" }, why: { type: "string" } } },
       deeper: { type: "array", items: { type: "string" } },
       practice: { type: "array", items: { type: "object", properties: { q: { type: "string" }, answer: { type: "string" }, hint: { type: "string" } } } },
@@ -505,7 +506,7 @@ module.exports = async (req, res) => {
     { type: "text", text: user + `\n\nThe child attached the photo above. Figure out what it shows and teach a lesson about it (or answer their question about it). Start by saying what you see in the photo. For image_query, use plain words for the main thing in the photo.` }
   ] : user;
   try {
-    lesson = await withRetry(() => callTool(SYSTEM_LESSON, LESSON_TOOL, content, 4000, j => Array.isArray(j.answer)), 25000);
+    lesson = await withRetry(() => callTool(SYSTEM_LESSON, LESSON_TOOL, content, 5000, j => Array.isArray(j.answer)), 25000);
   } catch (e) {
     return send(500, { error: "oops", reason: errorCode(e) });
   }
