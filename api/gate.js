@@ -121,6 +121,7 @@ module.exports = async (req, res) => {
   body = body || {};
   let out;
   try { out = await decide(body); } catch (e) { out = { ok: true, who: "error" }; }
+  if (out && out.who === "visitor") out.total = FREE_TRIES;   // lets each tool show "3 of 8 tries left"
   res.statusCode = 200;
   res.setHeader("Content-Type", "application/json");
   res.end(JSON.stringify(out));
