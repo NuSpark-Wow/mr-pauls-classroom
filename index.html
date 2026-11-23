@@ -240,6 +240,12 @@ body.teen .brand span{color:#3b6fd8}
 .img-card img{width:100%;max-height:300px;object-fit:contain;border-radius:12px;background:#f4efe6;display:block}
 .credit{font-size:12.5px !important;color:var(--soft);margin-top:8px !important;font-weight:700 !important}
 .wow{background:#fff7d6}.wow h3{color:#b07800}
+.trip{background:#e8f6ff;grid-column:1/-1}.trip h3{color:#0b6aa8}
+.trip .tgo{background:#0b6aa8;color:#fff;border:0;border-radius:12px;padding:10px 18px;font-size:17px;font-weight:700;cursor:pointer}
+.trip .stops{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-top:12px}
+.trip .stop{background:#fff;border-radius:12px;padding:10px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.trip .stop img{width:100%;height:150px;object-fit:cover;border-radius:8px;background:#dbeafe}
+.trip .stop b{display:block;margin:8px 0 4px;color:#0b3b5c}.trip .stop small{display:block;color:#777;font-size:11px;margin-top:6px}
 .tryit{background:#e8f6ec}.tryit h3{color:var(--green)}
 
 .quiz{margin-top:16px}
@@ -476,6 +482,7 @@ body.present .caption{font-size:clamp(22px,2vw,30px)}
         <button class="btn hide" id="pause">⏸ Pause</button>
         <button class="btn hide" id="stop"></button>
         <button class="btn" id="print"></button>
+        <button class="btn" id="wowCardBtn">🏅 My Wow Card</button>
         <div class="thumbs" id="thumbs"><span id="helpful"></span><button id="up" aria-label="Yes">👍</button><button id="down" aria-label="No">👎</button></div>
       </div>
       <div class="vocab hide" id="vocab"></div>
@@ -493,6 +500,7 @@ body.present .caption{font-size:clamp(22px,2vw,30px)}
     <div class="card why-photos hide" id="whyCard" style="grid-column:1/-1"><h3 id="hWhyPhotos"></h3><div class="wgrid" id="wGrid"></div><p class="accnote" id="wNote"></p></div>
     <div class="card wow hide" id="wowCard"><h3 id="hWow"></h3><p id="wow"></p></div>
     <div class="card tryit hide" id="tryCard"><h3 id="hTry"></h3><p id="try"></p></div>
+    <div class="card trip hide" id="tripCard"><h3 id="hTrip">🚌 Field Trip!</h3><p id="tripIntro"></p><button class="tgo" id="tripGo" type="button">🚌 Let's go!</button><div class="stops" id="tripStops"></div></div>
   </div>
 
   <div class="card quiz hide" id="quizCard">
@@ -1023,6 +1031,7 @@ async function ask(text, context, opts){
 var ownProblem = false;
 function render(){
   const L = lesson, isLesson = L.type === "lesson", S = t();
+  $("wowCardBtn").classList.toggle("hide", !isLesson); $("wowCardBtn").textContent = lang === "es" ? "🏅 Mi tarjeta Wow" : "🏅 My Wow Card";
   $("title").textContent = L.title || "";
   $("panel").classList.remove("hide");
   ["hHint","hAnswer"].forEach(id => { const b = $(id); if (b) b.classList.toggle("hide", !ownProblem); });
@@ -1052,13 +1061,14 @@ function render(){
   if (!isLesson) { boardOff = true; clearTimeout(pumpTimer); }
 
   const ex = $("extras"); ex.classList.add("hide");
-  ["imgCard","wowCard","tryCard","quizCard","deepCard","practiceCard","whyCard","testCard"].forEach(id => $(id).classList.add("hide"));
+  ["imgCard","wowCard","tryCard","tripCard","quizCard","deepCard","practiceCard","whyCard","testCard"].forEach(id => $(id).classList.add("hide"));
   if (isLesson) renderPractice(L.practice || []);
   $("checkBox").classList.add("hide"); $("checkFb").textContent = "";
   ["idea","real","home"].forEach(a => { const b = document.querySelector('#views [data-a="' + a + '"]'); if (b) b.classList.toggle("on", (L._action || "idea") === a); });
   if (isLesson) {
     if (L.wow) { $("wow").textContent = L.wow; $("wowCard").classList.remove("hide"); ex.classList.remove("hide"); }
     if (L.try_it) { $("try").textContent = L.try_it; $("tryCard").classList.remove("hide"); ex.classList.remove("hide"); }
+    showTrip(L.field_trip || []);
     mainSeen = []; mainQ = ""; $("imgAnother").classList.remove("hide");
     if (L.image_query) loadImage(L.image_query);
     renderWhyPhotos(L.photos || []);
@@ -1093,6 +1103,48 @@ $("up").onclick = () => vote("up");
 $("down").onclick = () => vote("down");
 
 /* ---------- printable recap ---------- */
+/* ---------- Field Trip: a pretend 3-stop trip with real photos ---------- */
+function escH(t){ return String(t || "").replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" })[c]); }
+var tripStops = [];
+function showTrip(stops){
+  tripStops = (Array.isArray(stops) ? stops : []).filter(s => s && s.place && s.what).slice(0, 3);
+  $("tripStops").innerHTML = ""; $("tripGo").classList.remove("hide");
+  if (tripStops.length < 2) return;
+  const es = lang === "es";
+  $("hTrip").textContent = es ? "🚌 ¡Excursión!" : "🚌 Field Trip!";
+  $("tripIntro").textContent = es ? "Sube al autobús de Mr. Paul: visitamos " + tripStops.length + " lugares reales." : "Hop on Mr. Paul's bus: we'll visit " + tripStops.length + " real places.";
+  $("tripGo").textContent = es ? "🚌 ¡Vamos!" : "🚌 Let's go!";
+  $("tripCard").classList.remove("hide"); $("extras").classList.remove("hide");
+}
+$("tripGo").onclick = () => {
+  track("field_trip", { lang }); $("tripGo").classList.add("hide");
+  const es = lang === "es";
+  tripStops.forEach((st, i) => {
+    const d = document.createElement("div"); d.className = "stop";
+    d.innerHTML = '<img alt="' + escH(st.place) + '"><b>' + (es ? "Parada " : "Stop ") + (i + 1) + ": " + escH(st.place) + '</b><span>' + escH(st.what) + '</span><small></small>';
+    $("tripStops").appendChild(d);
+    const img = d.querySelector("img");
+    fetchPhoto(st.photo || st.place, []).then(im => {
+      if (!im) { img.remove(); return; }
+      img.src = im.src; d.querySelector("small").textContent = creditLine(im);
+    });
+  });
+};
+/* ---------- Wow Card: a one-page recap kids can print or show a grown-up ---------- */
+$("wowCardBtn").onclick = () => {
+  const Ls = lesson; if (!Ls || Ls.type !== "lesson") return;
+  track("wow_card", { lang });
+  const es = lang === "es";
+  const words = (Ls.vocab || []).slice(0, 3);
+  const html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Wow Card</title><style>body{font-family:"Comic Sans MS","Trebuchet MS",sans-serif;margin:0;padding:24px;background:#fff}.card{max-width:620px;margin:0 auto;border:6px solid #ffb703;border-radius:28px;padding:26px 30px;background:linear-gradient(#fffbea,#fff)}.top{font-size:15px;letter-spacing:2px;color:#b07800;font-weight:700}h1{font-size:30px;margin:6px 0 14px;color:#173f5f}.badge{float:right;font-size:64px;line-height:1}h2{font-size:18px;color:#0b6aa8;margin:16px 0 6px}p,li{font-size:17px;line-height:1.45}.line{margin-top:22px;font-size:15px}.foot{margin-top:18px;font-size:11px;color:#888;text-align:center}button{display:block;margin:0 auto 14px;padding:8px 16px;font-size:15px}@media print{button{display:none}}</style></head><body><button onclick="window.print()">🖨 ' + (es ? "Imprimir" : "Print") + '</button><div class="card"><div class="badge">🏅</div><div class="top">' + (es ? "TARJETA WOW" : "WOW CARD") + '</div><h1>' + escH(Ls.title) + '</h1>' +
+    (Ls.wow ? '<h2>⭐ ' + (es ? "¡Lo más sorprendente!" : "The wow part!") + '</h2><p>' + escH(Ls.wow) + '</p>' : "") +
+    (words.length ? '<h2>📚 ' + (es ? "Palabras que aprendí" : "Words I learned") + '</h2><ul>' + words.map(w => '<li><b>' + escH(w.word) + ':</b> ' + escH(w.meaning) + '</li>').join("") + '</ul>' : "") +
+    '<div class="line">' + (es ? "Aprendido por: ____________________   Fecha: " : "Learned by: ____________________   Date: ") + new Date().toLocaleDateString(es ? "es-US" : "en-US") + '</div>' +
+    '<div class="foot">Mr. Paul\'s Classroom · nusparklearnwow.com</div></div></body></html>';
+  const w = window.open("", "_blank");
+  if (!w) { $("hint").textContent = es ? "Permite ventanas emergentes para ver tu tarjeta." : "Allow pop-ups to open your Wow Card."; return; }
+  w.document.open(); w.document.write(html); w.document.close();
+};
 $("print").onclick = () => { track("print", { lang }); window.print(); };
 const settle = g => g.querySelectorAll("*").forEach(el => { el.style.transition = "none"; el.style.strokeDashoffset = 0; el.style.opacity = 1; el.style.fillOpacity = ""; });
 window.addEventListener("beforeprint", () => {
