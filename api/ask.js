@@ -506,7 +506,7 @@ module.exports = async (req, res) => {
     { type: "text", text: user + `\n\nThe child attached the photo above. Figure out what it shows and teach a lesson about it (or answer their question about it). Start by saying what you see in the photo. For image_query, use plain words for the main thing in the photo.` }
   ] : user;
   try {
-    lesson = await withRetry(() => callTool(SYSTEM_LESSON, LESSON_TOOL, content, 4000, j => Array.isArray(j.answer)), 25000);
+    lesson = await withRetry(() => callTool(SYSTEM_LESSON, LESSON_TOOL, content, 5000, j => Array.isArray(j.answer)), 25000);
   } catch (e) {
     return send(500, { error: "oops", reason: errorCode(e) });
   }
