@@ -5,6 +5,7 @@
 // Visitors without a pass get a few tries, then see the Join screen.
 //
 // Vercel settings (Environment Variables) for THIS project only:
+//   LW_GATE_OFF         set to 1 to switch the gate OFF for testing (no tries, no Join screen). Delete it to turn the gate back on.
 //   LW_PASS_SECRET      required to switch the gate ON (same secret as the WordPress plugin). Not set = gate OFF, everything allowed.
 //   UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN (or KV_REST_API_URL / KV_REST_API_TOKEN)  the counter database
 //   LW_FREE_TRIES       visitor tries across all tools (default 3). 0 = preview only (no tries).
@@ -17,7 +18,7 @@
 const crypto = require("crypto");
 
 const num = (v, d) => { const n = parseInt(v, 10); return Number.isFinite(n) && n >= 0 ? n : d; };
-const SECRET = process.env.LW_PASS_SECRET || "";
+const SECRET = String(process.env.LW_GATE_OFF || "") === "1" ? "" : (process.env.LW_PASS_SECRET || "");
 const RURL = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || "";
 const RTOK = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || "";
 const FREE_TRIES = num(process.env.LW_FREE_TRIES, 3);
